@@ -2,11 +2,12 @@
 ## Subsystem 1: Real-Time AI Vision & Obstacle Avoidance
 
 > **Mechatronics Engineering Graduation Project**  
-> An edge-optimized, intelligent navigation and assistive obstacle-avoidance system for an autonomous electric wheelchair. This repository hosts **Subsystem 1 (Computer Vision & AI Perception)**, serving as the primary optical perception pipeline before multi-sensor fusion with LiDAR and embedded motor control.
+> An edge-optimized, intelligent perception and assistive obstacle-avoidance system built directly on a commercial motorized electric wheelchair. This repository hosts **Subsystem 1 (Computer Vision & AI Perception)**, running on an on-board **HP EliteDesk Mini PC** as the primary optical perception pipeline before multi-sensor fusion with LiDAR and Arduino motor control.
 
 ---
 
 ## 📌 Table of Contents
+- [Hardware Platform & Vehicle Specifications](#-hardware-platform--vehicle-specifications)
 - [Project Scope & Multi-Phase Roadmap](#-project-scope--multi-phase-roadmap)
 - [System Architecture (Overall vs. Subsystem 1)](#-system-architecture-overall-vs-subsystem-1)
 - [Subsystem 1: Vision System Features](#-subsystem-1-vision-system-features)
@@ -29,14 +30,26 @@
 
 ---
 
+## 🦾 Hardware Platform & Vehicle Specifications
+
+Unlike small robotic mockups or DIY rovers, this project is engineered directly onto a **full-scale, commercial electric powered wheelchair**, preserving all factory powertrain components, battery infrastructure, and mechanical integrity:
+
+- **Chassis & Powertrain**: Complete electric wheelchair equipped with native dual **24V 250W DC geared motors (MY1016Z)** and built-in differential drive transmission.
+- **Factory Motor Controller**: The original wheelchair motor controller and joystick assembly are retained. No external or aftermarket motor drivers are required.
+- **On-Board High-Level Computer**: **HP EliteDesk Mini PC** (running Linux Ubuntu), executing deep learning inference, image processing, sensor fusion, and high-level decision algorithms.
+- **Low-Level Microcontroller**: **Arduino**, interfacing directly with the Mini PC via USB Serial and bridging navigation commands to the wheelchair's native joystick and motor controller.
+- **Sensors**: Wide-angle USB/V4L2 camera (Subsystem 1) alongside a 360° LiDAR scanner (Subsystem 2).
+
+---
+
 ## 🗺️ Project Scope & Multi-Phase Roadmap
 
-The goal of this Mechatronics Engineering Graduation Project is to engineer a fully autonomous, intelligent, and safe electric wheelchair. The complete system comprises multiple coordinated subsystems:
+The graduation project follows a modular, 5-phase mechatronics development pipeline:
 
 ```mermaid
 flowchart LR
     subgraph S1 ["Phase 1 (Current Repo)"]
-        CAM["Wide-Angle Camera"] --> AI["AI Vision & Floor Detection"]
+        CAM["Wide-Angle Camera"] --> AI["AI Vision & Floor Detection\n(HP EliteDesk Mini PC)"]
     end
 
     subgraph S2 ["Phase 2 (Upcoming)"]
@@ -49,10 +62,10 @@ flowchart LR
     end
 
     subgraph S4 ["Phase 4 (Upcoming)"]
-        FUSION --> PLAN["Path Planner / Navigation\n(Mini PC)"]
-        PLAN -->|UART / CAN Bus| MCU["ESP32 Microcontroller"]
-        MCU --> DRV["Hoverboard Motor Drivers"]
-        DRV --> MOT["Brushless Hub Motors"]
+        FUSION --> PLAN["Navigation & Path Planner\n(Mini PC)"]
+        PLAN -->|USB Serial| ARD["Arduino Microcontroller"]
+        ARD --> CTRL["Wheelchair Native Motor Controller\n(Joystick Interface)"]
+        CTRL --> MOT["Built-in 24V 250W Motors\n(MY1016Z Geared DC)"]
     end
 ```
 
@@ -60,22 +73,23 @@ flowchart LR
 1. **Phase 1: Real-Time Computer Vision & AI Perception (🟢 Current Codebase)**:
    - High-speed camera capture with zero latency.
    - Deep learning object tracking (YOLOv8 + ByteTrack).
-   - Custom multi-cue floor hazard segmentation (detecting unclassified boxes, slippers, ground objects).
+   - Custom multi-cue floor hazard segmentation (detecting unclassified boxes, slippers, ground obstacles).
    - 3-corridor danger zone mapping and temporal command smoothing.
    - Low-overhead web telemetry dashboard with live MJPEG streaming.
 
 2. **Phase 2: LiDAR Integration & 360° Proximity Mapping (🟡 Upcoming)**:
-   - Interfacing 2D LiDAR scanner over USB/Serial on the Mini PC.
-   - Laser scan distance filtering to cover camera blind spots and guarantee detection in varying lighting conditions (e.g. low-light or direct glare).
+   - Interfacing 2D LiDAR scanner over USB/Serial on the HP Mini PC.
+   - Laser scan distance filtering to cover camera blind spots and guarantee obstacle detection in all lighting conditions (e.g. low-light or direct glare).
 
-3. **Phase 3: Sensor Fusion (Camera + LiDAR) (🔄 Upcoming)**:
-   - Spatial calibration and extrinsic matrix alignment between camera FOV and LiDAR plane.
+3. **Phase 3: Multi-Sensor Fusion (Camera + LiDAR) (🔄 Upcoming)**:
+   - Spatial calibration and extrinsic matrix alignment between camera field-of-view and LiDAR scan plane.
    - Fusing visual semantic classification (YOLO) with millimeter-accurate metric depth (LiDAR).
 
-4. **Phase 4: Embedded Microcontroller & Hardware Interfacing (🔄 Upcoming)**:
-   - High-throughput serial protocol (UART / CAN) connecting the on-board Mini PC to the **ESP32 microcontroller**.
-   - Dual brushless hub motor closed-loop PID control using custom hoverboard motor driver firmware.
-   - Physical emergency stop (E-Stop) and joystick manual override integration.
+4. **Phase 4: Embedded Arduino Microcontroller & Native Motor Control (🔄 Upcoming)**:
+   - High-speed USB Serial protocol connecting the on-board Mini PC to the **Arduino**.
+   - Interfacing Arduino I/O to the electric wheelchair's native joystick and motor controller circuitry.
+   - Commanding direction and speed safely through the wheelchair's original powertrain without requiring external motor drivers.
+   - Physical emergency stop (E-Stop) and seamless manual joystick takeover.
 
 5. **Phase 5: Autonomous Navigation, SLAM & Assistive Path Planning (🔄 Upcoming)**:
    - 2D occupancy grid mapping and local costmap generation.
@@ -91,7 +105,7 @@ The diagram below details the internal dataflow of the current Vision Subsystem 
 flowchart TD
     subgraph Hardware ["Hardware Layer"]
         CAM["USB / V4L2 Wide-Angle Camera"]
-        PC["x86 Mini PC (Ubuntu Linux)"]
+        PC["HP EliteDesk Mini PC (Ubuntu Linux)"]
     end
 
     subgraph Pipeline ["3-Thread Concurrent Vision Pipeline"]
@@ -112,7 +126,7 @@ flowchart TD
     subgraph Output ["Outputs & Control Interface"]
         WEB["HTML5 Dark Dashboard (Port 5000)"]
         API["REST Telemetry API (/telemetry)"]
-        MCU["Future ESP32 / Motor Interface"]
+        ARD["Future Arduino Serial Interface"]
     end
 
     CAM --> T1
@@ -128,7 +142,7 @@ flowchart TD
     SMOOTH -->|Navigation Vectors & Detections| T3
     T3 --> WEB
     T3 --> API
-    API -.-> MCU
+    API -.-> ARD
 ```
 
 ---
@@ -269,7 +283,7 @@ python -c "from ultralytics import YOLO; YOLO('yolov8n.pt')"
 ```
 
 ### Remote Mini PC Deployment (via Ethernet / WiFi)
-When running headlessly on the wheelchair's on-board Mini PC:
+When running headlessly on the wheelchair's on-board **HP EliteDesk Mini PC**:
 ```bash
 # SSH into the Mini PC
 ssh mahmoud-bahlol@10.0.0.2
@@ -305,7 +319,7 @@ python3 main.py --host 192.168.1.100 --port 8080
 
 ## 🌐 Web Telemetry & REST API
 
-The system provides a built-in REST API allowing external microcontrollers (e.g., ESP32, Arduino, or ROS nodes) to poll real-time obstacle avoidance state:
+The system provides a built-in REST API allowing the **Arduino microcontroller** or external nodes to poll real-time obstacle avoidance telemetry:
 
 ### 1. Telemetry Endpoint: `GET /telemetry`
 Returns live JSON data containing FPS rates, active navigation commands, corridor clearance, and obstacle counts.
