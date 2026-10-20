@@ -197,8 +197,8 @@ Graduation Project Mecha/
 ### Local Setup
 ```bash
 # 1. Clone the repository
-git clone git@github.com:khairycse404/smart-wheelchair-vision.git
-cd smart-wheelchair-vision
+git clone git@github.com:khairycse404/smart-wheelchair.git
+cd smart-wheelchair
 
 # 2. Create and activate a Python virtual environment
 python3 -m venv venv
