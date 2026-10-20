@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Wheelchair AI Vision Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0f172a;
+            color: #f8fafc;
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 16px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #1e293b;
+            padding: 14px 20px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            border: 1px solid #334155;
+        }
+        .header h1 { font-size: 1.25rem; color: #38bdf8; }
+        .badge {
+            background: #22c55e;
+            color: #052e16;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 900px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+        .video-card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 12px;
+            border: 1px solid #334155;
+            text-align: center;
+        }
+        .video-card img {
+            width: 100%;
+            max-height: 74vh;
+            object-fit: contain;
+            border-radius: 8px;
+            background: #000;
+        }
+        .telemetry-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid #334155;
+        }
+        .card-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+        .card-value {
+            font-size: 1.35rem;
+            font-weight: 700;
+        }
+        .zones {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .zone-box {
+            padding: 12px 8px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+        .clear { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid #22c55e; }
+        .blocked { background: rgba(239, 68, 68, 0.25); color: #f87171; border: 1px solid #ef4444; }
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        button {
+            background: #334155;
+            color: #f8fafc;
+            border: 1px solid #475569;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            flex: 1;
+        }
+        button:hover { background: #475569; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Smart Wheelchair — Mini PC AI Vision GUI</h1>
+        <span class="badge">ZERO-LAG STREAM</span>
+    </div>
+    <div class="grid">
+        <div class="video-card">
+            <img src="/video_feed" alt="Live AI Camera Stream">
+        </div>
+        <div class="telemetry-panel">
+            <div class="card">
+                <div class="card-label">Navigation Decision</div>
+                <div class="card-value" id="nav-cmd" style="color: #38bdf8;">INITIALIZING...</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Zone Status (Left / Center / Right)</div>
+                <div class="zones">
+                    <div class="zone-box clear" id="z_left">LEFT<br>CLEAR</div>
+                    <div class="zone-box clear" id="z_center">CENTER<br>CLEAR</div>
+                    <div class="zone-box clear" id="z_right">RIGHT<br>CLEAR</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-label">Remote Controls (Tune Live on Mini PC)</div>
+                <div class="btn-group">
+                    <button onclick="control('line_up')">Line UP (+)</button>
+                    <button onclick="control('line_down')">Line DOWN (-)</button>
+                </div>
+                <div class="btn-group">
+                    <button onclick="control('toggle_unknown')">Toggle Unknown-Box [u]</button>
+                    <button onclick="control('toggle_edges')">Toggle Mask View [e]</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-label">Steering & Speed Command</div>
+                <div class="card-value" id="motor-cmd">Steer: 0° | Speed: 0%</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Mini PC Performance</div>
+                <div class="card-value" id="fps" style="font-size: 1.05rem;">Video: 0 FPS | AI: 0 Hz | Objects: 0</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function control(action) {
+            fetch('/control/' + action, { method: 'POST' });
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === '+' || e.key === '=') control('line_up');
+            if (e.key === '-' || e.key === '_') control('line_down');
+            if (e.key === 'u' || e.key === 'U') control('toggle_unknown');
+            if (e.key === 'e' || e.key === 'E') control('toggle_edges');
+        });
+
+        setInterval(async () => {
+            try {
+                const res = await fetch('/telemetry');
+                const data = await res.json();
+                document.getElementById('nav-cmd').innerText = data.command;
+                document.getElementById('motor-cmd').innerText = `Steer: ${data.steer_deg > 0 ? '+' : ''}${data.steer_deg}° | Speed: ${data.speed_pct}%`;
+                document.getElementById('fps').innerText = `Video: ${data.fps} FPS | AI: ${data.ai_fps} Hz | Objects: ${data.objects_count}`;
+
+                const setZone = (id, name, state) => {
+                    const el = document.getElementById(id);
+                    el.className = 'zone-box ' + (state === 'BLOCKED' ? 'blocked' : 'clear');
+                    el.innerHTML = `${name}<br>${state}`;
+                };
+                setZone('z_left', 'LEFT', data.left_zone);
+                setZone('z_center', 'CENTER', data.center_zone);
+                setZone('z_right', 'RIGHT', data.right_zone);
+            } catch (e) {}
+        }, 200);
+    </script>
+</body>
+</html>
