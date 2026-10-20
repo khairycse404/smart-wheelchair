@@ -1,14 +1,15 @@
-# 🦼 Autonomous Smart Wheelchair: Real-Time AI Vision & Obstacle Avoidance System
+# 🦼 Autonomous Smart Wheelchair: Multi-Sensor Autonomous System
+## Subsystem 1: Real-Time AI Vision & Obstacle Avoidance
 
 > **Mechatronics Engineering Graduation Project**  
-> A high-performance, edge-optimized Computer Vision and AI Obstacle Avoidance pipeline designed for assistive smart wheelchairs. Combines deep learning object tracking, multi-cue ground plane hazard segmentation, dynamic danger corridor mapping, and ultra-low-latency web telemetry.
+> An edge-optimized, intelligent navigation and assistive obstacle-avoidance system for an autonomous electric wheelchair. This repository hosts **Subsystem 1 (Computer Vision & AI Perception)**, serving as the primary optical perception pipeline before multi-sensor fusion with LiDAR and embedded motor control.
 
 ---
 
 ## 📌 Table of Contents
-- [System Overview](#-system-overview)
-- [Key Features](#-key-features)
-- [Architecture & Dataflow](#-architecture--dataflow)
+- [Project Scope & Multi-Phase Roadmap](#-project-scope--multi-phase-roadmap)
+- [System Architecture (Overall vs. Subsystem 1)](#-system-architecture-overall-vs-subsystem-1)
+- [Subsystem 1: Vision System Features](#-subsystem-1-vision-system-features)
 - [Core Algorithms & Vision Techniques](#-core-algorithms--vision-techniques)
   - [1. Zero-Lag 3-Thread Concurrent Pipeline](#1-zero-lag-3-thread-concurrent-pipeline)
   - [2. Deep Learning Object Tracking (YOLOv8 + ByteTrack)](#2-deep-learning-object-tracking-yolov8--bytetrack)
@@ -28,40 +29,75 @@
 
 ---
 
-## 🌟 System Overview
+## 🗺️ Project Scope & Multi-Phase Roadmap
 
-Assistive smart wheelchairs require fast, robust, and dependable obstacle detection to guarantee passenger safety. Traditional deep-learning detectors often fail on low-profile, unclassified floor hazards (such as cardboard boxes, stray cables, or slippers) or introduce severe frame latency when running on embedded CPU hardware.
+The goal of this Mechatronics Engineering Graduation Project is to engineer a fully autonomous, intelligent, and safe electric wheelchair. The complete system comprises multiple coordinated subsystems:
 
-This project delivers a **hybrid perception and navigation guidance system** tailored specifically for edge deployment on an on-board Mini PC. It pairs **Ultralytics YOLOv8** with a **custom multi-cue ground plane segmentation algorithm**, ensuring that both recognized objects (people, chairs, obstacles) and arbitrary ground hazards are detected with zero video lag.
+```mermaid
+flowchart LR
+    subgraph S1 ["Phase 1 (Current Repo)"]
+        CAM["Wide-Angle Camera"] --> AI["AI Vision & Floor Detection"]
+    end
+
+    subgraph S2 ["Phase 2 (Upcoming)"]
+        LIDAR["2D / 3D LiDAR"] --> LSCAN["Laser Scan Filtering"]
+    end
+
+    subgraph S3 ["Phase 3 (Upcoming)"]
+        AI --> FUSION["Sensor Fusion Engine\n(Optical BBoxes + Laser Depth)"]
+        LSCAN --> FUSION
+    end
+
+    subgraph S4 ["Phase 4 (Upcoming)"]
+        FUSION --> PLAN["Path Planner / Navigation\n(Mini PC)"]
+        PLAN -->|UART / CAN Bus| MCU["ESP32 Microcontroller"]
+        MCU --> DRV["Hoverboard Motor Drivers"]
+        DRV --> MOT["Brushless Hub Motors"]
+    end
+```
+
+### Development Phases:
+1. **Phase 1: Real-Time Computer Vision & AI Perception (🟢 Current Codebase)**:
+   - High-speed camera capture with zero latency.
+   - Deep learning object tracking (YOLOv8 + ByteTrack).
+   - Custom multi-cue floor hazard segmentation (detecting unclassified boxes, slippers, ground objects).
+   - 3-corridor danger zone mapping and temporal command smoothing.
+   - Low-overhead web telemetry dashboard with live MJPEG streaming.
+
+2. **Phase 2: LiDAR Integration & 360° Proximity Mapping (🟡 Upcoming)**:
+   - Interfacing 2D LiDAR scanner over USB/Serial on the Mini PC.
+   - Laser scan distance filtering to cover camera blind spots and guarantee detection in varying lighting conditions (e.g. low-light or direct glare).
+
+3. **Phase 3: Sensor Fusion (Camera + LiDAR) (🔄 Upcoming)**:
+   - Spatial calibration and extrinsic matrix alignment between camera FOV and LiDAR plane.
+   - Fusing visual semantic classification (YOLO) with millimeter-accurate metric depth (LiDAR).
+
+4. **Phase 4: Embedded Microcontroller & Hardware Interfacing (🔄 Upcoming)**:
+   - High-throughput serial protocol (UART / CAN) connecting the on-board Mini PC to the **ESP32 microcontroller**.
+   - Dual brushless hub motor closed-loop PID control using custom hoverboard motor driver firmware.
+   - Physical emergency stop (E-Stop) and joystick manual override integration.
+
+5. **Phase 5: Autonomous Navigation, SLAM & Assistive Path Planning (🔄 Upcoming)**:
+   - 2D occupancy grid mapping and local costmap generation.
+   - Shared autonomy: Assistive steering override (preventing collisions while allowing user navigation).
 
 ---
 
-## 🚀 Key Features
+## 🏗️ System Architecture (Subsystem 1: AI Vision)
 
-- **⚡ Zero-Lag Asynchronous Video Streaming**: Decoupled 3-thread architecture guarantees a smooth 30 FPS video feed regardless of AI inference time.
-- **🧠 Hybrid AI Perception**:
-  - **YOLOv8 Object Detection & ByteTrack**: Real-time identification and trajectory history tracking.
-  - **Multi-Cue Floor Hazard Segmentation**: Custom color/gradient horizon segmentation to catch unclassified ground objects (boxes, slippers, footwear).
-- **📐 Ground-Contact Distance Estimation**: Calculates physical obstacle distance based on ground-plane contact points and camera mounting geometry.
-- **🛡️ 3-Zone Dynamic Corridor Evaluation**: Segregates camera field of view into Left, Center, and Right corridors with configurable safety danger lines.
-- **🔄 Temporal Command Smoothing**: Windowed majority-voting filter suppresses transient false positives and eliminates motor control jitter.
-- **🌐 Responsive Web Telemetry HUD**: Embedded Flask dashboard streaming live annotated video with real-time HUD overlays, FPS metrics, and RESTful telemetry endpoints.
-
----
-
-## 🏗️ Architecture & Dataflow
+The diagram below details the internal dataflow of the current Vision Subsystem running on the wheelchair's on-board Mini PC:
 
 ```mermaid
 flowchart TD
     subgraph Hardware ["Hardware Layer"]
         CAM["USB / V4L2 Wide-Angle Camera"]
-        PC["x86 Mini PC / Embedded SBC"]
+        PC["x86 Mini PC (Ubuntu Linux)"]
     end
 
     subgraph Pipeline ["3-Thread Concurrent Vision Pipeline"]
         T1["Thread 1: ZeroLagCamera\nV4L2 Hardware Capture (Buffer=1)"]
-        T2["Thread 2: AI Worker Thread\nYOLOv8 + Floor Segmentation\n(Runs at ~10-15 FPS)"]
-        T3["Thread 3: Web Server & Streamer\nMJPEG Encoding & Telemetry HUD\n(Runs at 30 FPS)"]
+        T2["Thread 2: AI Worker Thread\nYOLOv8 + Floor Segmentation\n(Asynchronous ~10-15 FPS)"]
+        T3["Thread 3: Web Server & Streamer\nMJPEG Encoding & Telemetry HUD\n(Smooth 30 FPS Stream)"]
     end
 
     subgraph Processing ["AI Perception & Navigation"]
@@ -70,13 +106,13 @@ flowchart TD
         FUSE["Spatial Deduplication (IoU)"]
         DIST["Ground-Contact Distance Estimator"]
         ZONE["3-Corridor Danger Zone Evaluator"]
-        SMOOTH["Temporal Command Smoother"]
+        SMOOTH["Temporal Command Smoother (Majority Voting)"]
     end
 
-    subgraph Output ["Outputs & Control"]
+    subgraph Output ["Outputs & Control Interface"]
         WEB["HTML5 Dark Dashboard (Port 5000)"]
         API["REST Telemetry API (/telemetry)"]
-        MOTOR["Motor Controller / ESP32 Navigation Interface"]
+        MCU["Future ESP32 / Motor Interface"]
     end
 
     CAM --> T1
@@ -92,8 +128,21 @@ flowchart TD
     SMOOTH -->|Navigation Vectors & Detections| T3
     T3 --> WEB
     T3 --> API
-    API -.-> MOTOR
+    API -.-> MCU
 ```
+
+---
+
+## 🚀 Subsystem 1: Vision System Features
+
+- **⚡ Zero-Lag Asynchronous Video Streaming**: Decoupled 3-thread architecture guarantees a smooth 30 FPS video feed regardless of AI inference time.
+- **🧠 Hybrid AI Perception**:
+  - **YOLOv8 Object Detection & ByteTrack**: Real-time identification and trajectory history tracking.
+  - **Multi-Cue Floor Hazard Segmentation**: Custom color/gradient horizon segmentation to catch unclassified ground objects (boxes, slippers, footwear).
+- **📐 Ground-Contact Distance Estimation**: Calculates physical obstacle distance based on ground-plane contact points and camera mounting geometry.
+- **🛡️ 3-Zone Dynamic Corridor Evaluation**: Segregates camera field of view into Left, Center, and Right corridors with configurable safety danger lines.
+- **🔄 Temporal Command Smoothing**: Windowed majority-voting filter suppresses transient false positives and eliminates motor control jitter.
+- **🌐 Responsive Web Telemetry HUD**: Embedded Flask dashboard streaming live annotated video with real-time HUD overlays, FPS metrics, and RESTful telemetry endpoints.
 
 ---
 
@@ -110,7 +159,7 @@ Our solution decouples execution across 3 specialized threads:
 ### 2. Deep Learning Object Tracking (YOLOv8 + ByteTrack)
 - **Model**: YOLOv8 Nano (`yolov8n.pt`) with input resolution downscaled to 320x320 for rapid CPU inference.
 - **ByteTrack Integration**: Assigns persistent track IDs across frames and tracks moving objects with velocity vectors and trajectory trails.
-- **Footprint Extraction**: Extracts the bottom center $(x_{mid}, y_2)$ as the ground-contact point.
+- **Footprint Extraction**: Extracts the bottom center $(x_{\text{mid}}, y_2)$ as the ground-contact point.
 
 ### 3. Multi-Cue Floor Horizon Hazard Detection
 To catch low-profile hazards that deep learning models frequently miss, a specialized computer-vision algorithm inspects the ground plane below a calibrated horizon:
@@ -121,9 +170,16 @@ To catch low-profile hazards that deep learning models frequently miss, a specia
 - **Deduplication**: Computes Intersection-over-Union (IoU) between custom floor candidates and YOLO detections to avoid redundant bounding boxes.
 
 ### 4. Dynamic Danger Zone & Ground-Contact Distance Estimation
-- **Perspective Geometry**: Approximates physical distance $D$ in meters using the vertical coordinate of the obstacle's bottom edge ($y_2$):
-  $$\text{norm\_y} = \frac{y_2 - y_{min}}{y_{max} - y_{min}}$$
-  $$\text{Distance (m)} = D_{max} \cdot (1 - \text{norm\_y})^2 + D_{min}$$
+- **Perspective Geometry**: Approximates physical distance $d$ in meters using the vertical coordinate of the obstacle's bottom ground-contact point ($y_2$):
+
+```math
+y_{\text{norm}} = \frac{y_2 - y_{\min}}{y_{\max} - y_{\min}}
+```
+
+```math
+d = D_{\max} \cdot (1 - y_{\text{norm}})^2 + D_{\min}
+```
+
 - **Corridor Division**: The screen width is partitioned into three vertical sectors:
   - **Left Corridor**: $0 \le x < 0.35 \times W$
   - **Center Corridor**: $0.35 \times W \le x \le 0.65 \times W$
@@ -149,13 +205,13 @@ To prevent jerky steering caused by transient detection fluctuations, raw corrid
 ## 📁 Project Structure
 
 ```
-Graduation Project Mecha/
+smart-wheelchair/
 ├── main.py                     # Primary entrypoint (CLI runner & thread orchestrator)
 ├── requirements.txt            # Python dependencies
 ├── .gitignore                  # Git ignore rules (weights, venv, caches)
 ├── README.md                   # System documentation
 │
-├── wheelchair_vision/          # Core Modular Vision Package
+├── wheelchair_vision/          # Core Modular Vision Package (Subsystem 1)
 │   ├── __init__.py             # Package root
 │   ├── config.py               # Centralized configuration dataclass
 │   │
