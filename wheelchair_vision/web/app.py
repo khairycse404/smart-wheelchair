@@ -7,7 +7,7 @@ from flask import Flask, Response, render_template, jsonify
 from ..config import config
 
 
-def create_app(frame_streamer, shared_state, control_settings, telemetry):
+def create_app(frame_streamer, lidar_streamer, shared_state, control_settings, telemetry):
     template_dir = os.path.join(os.path.dirname(__file__), "templates")
     app = Flask(__name__, template_folder=template_dir)
 
@@ -19,6 +19,13 @@ def create_app(frame_streamer, shared_state, control_settings, telemetry):
     def video_feed():
         return Response(
             frame_streamer.generate(),
+            mimetype="multipart/x-mixed-replace; boundary=frame",
+        )
+
+    @app.route("/lidar_feed")
+    def lidar_feed():
+        return Response(
+            lidar_streamer.generate(),
             mimetype="multipart/x-mixed-replace; boundary=frame",
         )
 
@@ -46,6 +53,43 @@ def create_app(frame_streamer, shared_state, control_settings, telemetry):
                 control_settings["show_edge_overlay"] = not control_settings[
                     "show_edge_overlay"
                 ]
+            elif action == "lidar_danger_up":
+                control_settings["lidar_danger_m"] = round(
+                    min(2.50, control_settings["lidar_danger_m"] + 0.10), 2
+                )
+            elif action == "lidar_danger_down":
+                control_settings["lidar_danger_m"] = round(
+                    max(0.30, control_settings["lidar_danger_m"] - 0.10), 2
+                )
+            elif action == "lidar_rotate":
+                control_settings["lidar_angle_offset_deg"] = (
+                    control_settings["lidar_angle_offset_deg"] + 90.0
+                ) % 360.0
+            elif action == "lidar_align_left":
+                control_settings["lidar_angle_offset_deg"] = (
+                    control_settings["lidar_angle_offset_deg"] - 5.0
+                ) % 360.0
+            elif action == "lidar_align_right":
+                control_settings["lidar_angle_offset_deg"] = (
+                    control_settings["lidar_angle_offset_deg"] + 5.0
+                ) % 360.0
+            elif action == "lidar_zoom":
+                zoom_levels = [2.5, 3.5, 6.0]
+                cur = control_settings["lidar_radar_max_m"]
+                idx = zoom_levels.index(cur) if cur in zoom_levels else 1
+                control_settings["lidar_radar_max_m"] = zoom_levels[(idx + 1) % len(zoom_levels)]
+            elif action == "toggle_clusters":
+                control_settings["show_lidar_clusters"] = not control_settings.get(
+                    "show_lidar_clusters", True
+                )
+            elif action == "toggle_lidar_cam":
+                control_settings["show_lidar_on_cam"] = not control_settings.get(
+                    "show_lidar_on_cam", True
+                )
+            elif action == "toggle_estop":
+                control_settings["estop_active"] = not control_settings.get(
+                    "estop_active", False
+                )
         return jsonify({"ok": True})
 
     return app

@@ -1,378 +1,191 @@
-# 🦼 Autonomous Smart Wheelchair: Multi-Sensor Autonomous System
-## Subsystem 1: Real-Time AI Vision & Obstacle Avoidance
+# 🦼 Autonomous Smart Wheelchair
+### AI Computer Vision, 360° LiDAR Mapping & Multi-Sensor Fusion
 
 > **Mechatronics Engineering Graduation Project**  
-> An edge-optimized, intelligent perception and assistive obstacle-avoidance system built directly on a commercial motorized electric wheelchair. This repository hosts **Subsystem 1 (Computer Vision & AI Perception)**, running on an on-board **HP EliteDesk Mini PC** as the primary optical perception pipeline before multi-sensor fusion with LiDAR and Arduino motor control.
+> An intelligent perception, obstacle-avoidance, and autonomous navigation system built on a **full-scale commercial electric wheelchair**. Powered by an on-board **HP EliteDesk Mini PC** (Ubuntu + ROS 2 Jazzy), combining **YOLOv8 AI Vision**, **360° Slamtec RPLiDAR A1M8**, **Multi-Sensor Fusion**, and an **Arduino** motor interface.
 
 ---
 
-## 📌 Table of Contents
-- [Hardware Platform & Vehicle Specifications](#-hardware-platform--vehicle-specifications)
-- [Project Scope & Multi-Phase Roadmap](#-project-scope--multi-phase-roadmap)
-- [System Architecture (Overall vs. Subsystem 1)](#-system-architecture-overall-vs-subsystem-1)
-- [Subsystem 1: Vision System Features](#-subsystem-1-vision-system-features)
-- [Core Algorithms & Vision Techniques](#-core-algorithms--vision-techniques)
-  - [1. Zero-Lag 3-Thread Concurrent Pipeline](#1-zero-lag-3-thread-concurrent-pipeline)
-  - [2. Deep Learning Object Tracking (YOLOv8 + ByteTrack)](#2-deep-learning-object-tracking-yolov8--bytetrack)
-  - [3. Multi-Cue Floor Horizon Hazard Detection](#3-multi-cue-floor-horizon-hazard-detection)
-  - [4. Dynamic Danger Zone & Ground-Contact Distance Estimation](#4-dynamic-danger-zone--ground-contact-distance-estimation)
-  - [5. Temporal Command Smoothing & Navigation Decision Logic](#5-temporal-command-smoothing--navigation-decision-logic)
-- [Project Structure](#-project-structure)
-- [Installation & Setup](#-installation--setup)
-  - [Prerequisites](#prerequisites)
-  - [Local Setup](#local-setup)
-  - [Remote Mini PC Deployment (via Ethernet / WiFi)](#remote-mini-pc-deployment-via-ethernet--wifi)
-- [Usage & Running](#-usage--running)
-- [Web Telemetry & REST API](#-web-telemetry--rest-api)
-- [Configuration Parameters](#-configuration-parameters)
-- [Development Milestones (Legacy Prototypes)](#-development-milestones-legacy-prototypes)
-- [License & Acknowledgments](#-license--acknowledgments)
+## ⚡ Project Status & Roadmap
+
+| Phase | Subsystem | Status | Key Capabilities |
+| :--- | :--- | :---: | :--- |
+| **Phase 1** | **AI Camera Vision** (`vision/`) | 🟢 **Done** | Zero-lag 30 FPS capture, YOLOv8n + ByteTrack, custom floor hazard segmentation (boxes, slippers). |
+| **Phase 2** | **360° LiDAR & Path Planner** (`lidar/`) | 🟢 **Done** | ROS 2 `/scan` @ 10 Hz, 6-sector safety mapping, Euclidean obstacle clustering, VFH best-path finder, 2D BEV Radar. |
+| **Phase 3** | **Camera + LiDAR Fusion** (`fusion/`) | 🟢 **Done** | Laser-to-camera ray projection, true metric depth on AI boxes (`[FUSED]`), complementary corridor & blind-spot safety. |
+| **Phase 4** | **Arduino Motor Control** | 🟡 **Next** | USB Serial bridge to Arduino $\rightarrow$ native wheelchair joystick controller + hardware E-Stop. |
 
 ---
 
-## 🦾 Hardware Platform & Vehicle Specifications
+## 🦾 Hardware Platform
 
-Unlike small robotic mockups or DIY rovers, this project is engineered directly onto a **full-scale, commercial electric powered wheelchair**, preserving all factory powertrain components, battery infrastructure, and mechanical integrity:
-
-- **Chassis & Powertrain**: Complete electric wheelchair equipped with native dual **24V 250W DC geared motors (MY1016Z)** and built-in differential drive transmission.
-- **Factory Motor Controller**: The original wheelchair motor controller and joystick assembly are retained. No external or aftermarket motor drivers are required.
-- **On-Board High-Level Computer**: **HP EliteDesk Mini PC** (running Linux Ubuntu), executing deep learning inference, image processing, sensor fusion, and high-level decision algorithms.
-- **Low-Level Microcontroller**: **Arduino**, interfacing directly with the Mini PC via USB Serial and bridging navigation commands to the wheelchair's native joystick and motor controller.
-- **Sensors**: Wide-angle USB/V4L2 camera (Subsystem 1) alongside a 360° LiDAR scanner (Subsystem 2).
+- **Vehicle**: Commercial motorized wheelchair with factory **dual 24V 250W geared DC motors (MY1016Z)** and native joystick controller (no external DIY motor drivers needed).
+- **High-Level Brain**: **HP EliteDesk Mini PC** (Ubuntu Linux + ROS 2 Jazzy) running AI, LiDAR processing, Sensor Fusion, and the Web GUI.
+- **Sensors**:
+  - **Front Optical**: Wide-angle USB V4L2 Camera (`640x480 @ 30 FPS`).
+  - **360° Laser Rangefinder**: **Slamtec RPLiDAR A1M8** (`/dev/ttyUSB0`, `115200` baud, `8 kHz` sampling, `10 Hz` scan rate, `0.15m–12m` range).
+- **Low-Level Controller**: **Arduino** interfacing Mini PC serial commands to the wheelchair's native joystick circuit.
 
 ---
 
-## 🗺️ Project Scope & Multi-Phase Roadmap
-
-The graduation project follows a modular, 5-phase mechatronics development pipeline:
+## 🏗️ System Architecture & Dataflow
 
 ```mermaid
 flowchart LR
-    subgraph S1 ["Phase 1 (Current Repo)"]
-        CAM["Wide-Angle Camera"] --> AI["AI Vision & Floor Detection\n(HP EliteDesk Mini PC)"]
+    subgraph Sensors ["1. Physical Sensors"]
+        CAM["Wide-Angle USB Camera\n(/dev/video2 or /dev/video0)"]
+        LIDAR["RPLiDAR A1M8\n(/dev/ttyUSB0)"]
     end
 
-    subgraph S2 ["Phase 2 (Upcoming)"]
-        LIDAR["2D / 3D LiDAR"] --> LSCAN["Laser Scan Filtering"]
+    subgraph ROS2 ["2. ROS 2 Jazzy (~/lidar_ws)"]
+        SLNODE["C++ Node: sllidar_node\n(sllidar_ros2)"]
+        SCAN(("Topic: /scan\nLaserScan @ 10Hz"))
     end
 
-    subgraph S3 ["Phase 3 (Upcoming)"]
-        AI --> FUSION["Sensor Fusion Engine\n(Optical BBoxes + Laser Depth)"]
-        LSCAN --> FUSION
+    subgraph Core ["3. Smart Wheelchair Core (Python + rclpy)"]
+        VIS["Subsystem 1: Vision\n• YOLOv8 + ByteTrack\n• Floor Hazard Detector"]
+        LID["Subsystem 2: LiDAR\n• 6 Safety Sectors\n• Euclidean Clustering\n• VFH Path Planner"]
+        FUS["Subsystem 3: Sensor Fusion\n• Laser-on-Camera Projection\n• BBox Metric Depth [FUSED]\n• Corridor Arbitration"]
+        SAFE["Subsystem 4: Safety Brain\n• 3-Tier Perimeter (0.45m/0.85m/1.35m)\n• Flank Blind-Spot Protection\n• Instant E-Stop"]
     end
 
-    subgraph S4 ["Phase 4 (Upcoming)"]
-        FUSION --> PLAN["Navigation & Path Planner\n(Mini PC)"]
-        PLAN -->|USB Serial| ARD["Arduino Microcontroller"]
-        ARD --> CTRL["Wheelchair Native Motor Controller\n(Joystick Interface)"]
-        CTRL --> MOT["Built-in 24V 250W Motors\n(MY1016Z Geared DC)"]
-    end
-```
-
-### Development Phases:
-1. **Phase 1: Real-Time Computer Vision & AI Perception (🟢 Current Codebase)**:
-   - High-speed camera capture with zero latency.
-   - Deep learning object tracking (YOLOv8 + ByteTrack).
-   - Custom multi-cue floor hazard segmentation (detecting unclassified boxes, slippers, ground obstacles).
-   - 3-corridor danger zone mapping and temporal command smoothing.
-   - Low-overhead web telemetry dashboard with live MJPEG streaming.
-
-2. **Phase 2: LiDAR Integration & 360° Proximity Mapping (🟡 Upcoming)**:
-   - Interfacing 2D LiDAR scanner over USB/Serial on the HP Mini PC.
-   - Laser scan distance filtering to cover camera blind spots and guarantee obstacle detection in all lighting conditions (e.g. low-light or direct glare).
-
-3. **Phase 3: Multi-Sensor Fusion (Camera + LiDAR) (🔄 Upcoming)**:
-   - Spatial calibration and extrinsic matrix alignment between camera field-of-view and LiDAR scan plane.
-   - Fusing visual semantic classification (YOLO) with millimeter-accurate metric depth (LiDAR).
-
-4. **Phase 4: Embedded Arduino Microcontroller & Native Motor Control (🔄 Upcoming)**:
-   - High-speed USB Serial protocol connecting the on-board Mini PC to the **Arduino**.
-   - Interfacing Arduino I/O to the electric wheelchair's native joystick and motor controller circuitry.
-   - Commanding direction and speed safely through the wheelchair's original powertrain without requiring external motor drivers.
-   - Physical emergency stop (E-Stop) and seamless manual joystick takeover.
-
-5. **Phase 5: Autonomous Navigation, SLAM & Assistive Path Planning (🔄 Upcoming)**:
-   - 2D occupancy grid mapping and local costmap generation.
-   - Shared autonomy: Assistive steering override (preventing collisions while allowing user navigation).
-
----
-
-## 🏗️ System Architecture (Subsystem 1: AI Vision)
-
-The diagram below details the internal dataflow of the current Vision Subsystem running on the wheelchair's on-board Mini PC:
-
-```mermaid
-flowchart TD
-    subgraph Hardware ["Hardware Layer"]
-        CAM["USB / V4L2 Wide-Angle Camera"]
-        PC["HP EliteDesk Mini PC (Ubuntu Linux)"]
+    subgraph Output ["4. GUI & Control"]
+        WEB["Dual-Stream Web GUI (:5000)\nCamera HUD + 360° BEV Radar"]
+        ARD["Arduino Serial Bridge\n(Phase 4)"]
     end
 
-    subgraph Pipeline ["3-Thread Concurrent Vision Pipeline"]
-        T1["Thread 1: ZeroLagCamera\nV4L2 Hardware Capture (Buffer=1)"]
-        T2["Thread 2: AI Worker Thread\nYOLOv8 + Floor Segmentation\n(Asynchronous ~10-15 FPS)"]
-        T3["Thread 3: Web Server & Streamer\nMJPEG Encoding & Telemetry HUD\n(Smooth 30 FPS Stream)"]
-    end
-
-    subgraph Processing ["AI Perception & Navigation"]
-        YOLO["YOLOv8 + ByteTrack Tracker"]
-        FLOOR["Multi-Cue Floor Hazard Segmentation\n(Yellow, Blue, Footwear/Slippers)"]
-        FUSE["Spatial Deduplication (IoU)"]
-        DIST["Ground-Contact Distance Estimator"]
-        ZONE["3-Corridor Danger Zone Evaluator"]
-        SMOOTH["Temporal Command Smoother (Majority Voting)"]
-    end
-
-    subgraph Output ["Outputs & Control Interface"]
-        WEB["HTML5 Dark Dashboard (Port 5000)"]
-        API["REST Telemetry API (/telemetry)"]
-        ARD["Future Arduino Serial Interface"]
-    end
-
-    CAM --> T1
-    T1 -->|Raw Frame| T2
-    T1 -->|Fresh Frame| T3
-    T2 --> YOLO
-    T2 --> FLOOR
-    YOLO --> FUSE
-    FLOOR --> FUSE
-    FUSE --> DIST
-    DIST --> ZONE
-    ZONE --> SMOOTH
-    SMOOTH -->|Navigation Vectors & Detections| T3
-    T3 --> WEB
-    T3 --> API
-    API -.-> ARD
+    CAM --> VIS
+    LIDAR --> SLNODE --> SCAN --> LID
+    VIS --> FUS
+    LID --> FUS
+    FUS --> SAFE
+    SAFE --> WEB
+    SAFE -.-> ARD
 ```
 
 ---
 
-## 🚀 Subsystem 1: Vision System Features
+## 🧠 Core Subsystems Explained Simply
 
-- **⚡ Zero-Lag Asynchronous Video Streaming**: Decoupled 3-thread architecture guarantees a smooth 30 FPS video feed regardless of AI inference time.
-- **🧠 Hybrid AI Perception**:
-  - **YOLOv8 Object Detection & ByteTrack**: Real-time identification and trajectory history tracking.
-  - **Multi-Cue Floor Hazard Segmentation**: Custom color/gradient horizon segmentation to catch unclassified ground objects (boxes, slippers, footwear).
-- **📐 Ground-Contact Distance Estimation**: Calculates physical obstacle distance based on ground-plane contact points and camera mounting geometry.
-- **🛡️ 3-Zone Dynamic Corridor Evaluation**: Segregates camera field of view into Left, Center, and Right corridors with configurable safety danger lines.
-- **🔄 Temporal Command Smoothing**: Windowed majority-voting filter suppresses transient false positives and eliminates motor control jitter.
-- **🌐 Responsive Web Telemetry HUD**: Embedded Flask dashboard streaming live annotated video with real-time HUD overlays, FPS metrics, and RESTful telemetry endpoints.
+### 1. 👁️ AI Camera & Floor Hazard Detection (`wheelchair_vision/vision/`)
+- **Zero-Lag Capture (`ZeroLagCamera`)**: Dedicated V4L2 reader thread (`buffer=1`) ensures 0ms camera delay and automatic hot-plug fallback.
+- **YOLOv8 + ByteTrack**: Tracks people, chairs, and obstacles with persistent `#ID`s and motion trails.
+- **Multi-Cue Floor Segmentation**: Detects unclassified low floor hazards (cardboard boxes, slippers, footwear) below the horizon using HSV color + Sobel gradient cues.
 
----
+### 2. 📡 360° RPLiDAR A1M8 & Path Planner (`wheelchair_vision/lidar/`)
+- **ROS 2 Integration (`ROS2LidarScanner`)**: Subscribes to `/scan` (`sensor_msgs/msg/LaserScan`) and **automatically starts `sllidar_node`** in the background if not already running.
+- **6 Directional Safety Sectors**: Monitors `FRONT-L`, `FRONT-C`, `FRONT-R`, `LEFT FLANK`, `RIGHT FLANK`, and `REAR`.
+- **360° Obstacle Clustering**: Groups adjacent laser points into discrete obstacles (`#1, #2...`), measuring each obstacle's **exact distance (`m`), angle (`°`), and physical width (`m`)**.
+- **VFH Autonomous Path Finder**: Scans $[-75^\circ, +75^\circ]$ accounting for the wheelchair's physical width ($0.68\text{ m}$) to compute the safest passable heading angle (`best_heading_deg`).
 
-## 🔬 Core Algorithms & Vision Techniques
+### 3. 🔗 Multi-Sensor Fusion (`wheelchair_vision/fusion/`)
+- **Laser-on-Camera Projection**: Maps frontal LiDAR rays ($-34^\circ \text{ to } +34^\circ$) onto the camera video so you see live laser dots hitting obstacles on screen.
+- **Object Depth Fusion**: Matches each camera bounding box $[x_1, x_2]$ to its angular LiDAR slice:
+  - **3D Obstacles (`[FUSED]`)**: Upgrades approximate pixel distance with **millimeter-accurate LiDAR depth**.
+  - **Low Floor Hazards (`[CAM (LOW FLOOR)]`)**: Keeps camera ground-contact depth for flat objects (like slippers) that sit *below* the horizontal LiDAR laser plane, and plots them as diamond markers on the 2D Radar.
+- **Complementary Corridors**: Marks `LEFT`, `CENTER`, or `RIGHT` as `BLOCKED (FUSED)`, `BLOCKED (LIDAR)`, or `BLOCKED (CAM)`.
 
-### 1. Zero-Lag 3-Thread Concurrent Pipeline
-Standard single-threaded OpenCV loops block the camera capture while waiting for heavy deep-learning inference, causing OpenCV's internal V4L2 buffer to fill with stale frames. This leads to latency that grows over time.
-
-Our solution decouples execution across 3 specialized threads:
-1. **Camera Thread (`ZeroLagCamera`)**: Continuously drains the hardware camera buffer (`cv2.CAP_PROP_BUFFERSIZE = 1`). Whenever a fresh frame arrives, older ones are immediately discarded.
-2. **AI Inference Thread (`ai_worker_loop`)**: Runs YOLOv8 inference, multi-cue floor hazard segmentation, distance calculation, and command synthesis asynchronously. Writes current detections to a thread-safe `SharedState`.
-3. **Web Streamer Thread (`FrameStreamer`)**: Pulls the newest raw frame from Thread 1, overlays the latest bounding boxes and HUD diagnostics from Thread 2, encodes it into MJPEG, and delivers it to connected browser clients at 30 FPS.
-
-### 2. Deep Learning Object Tracking (YOLOv8 + ByteTrack)
-- **Model**: YOLOv8 Nano (`yolov8n.pt`) with input resolution downscaled to 320x320 for rapid CPU inference.
-- **ByteTrack Integration**: Assigns persistent track IDs across frames and tracks moving objects with velocity vectors and trajectory trails.
-- **Footprint Extraction**: Extracts the bottom center $(x_{\text{mid}}, y_2)$ as the ground-contact point.
-
-### 3. Multi-Cue Floor Horizon Hazard Detection
-To catch low-profile hazards that deep learning models frequently miss, a specialized computer-vision algorithm inspects the ground plane below a calibrated horizon:
-- **Spatial ROI**: Constrained to the lower 65% of the frame (the floor area immediately ahead of the wheelchair wheels).
-- **Cue A (Warm / Yellow Obstacles)**: HSV color thresholding isolating yellow and warm-toned cardboard boxes.
-- **Cue B (Cool / Blue Obstacles)**: HSV thresholding tuned for high-saturation cool objects.
-- **Cue C (Dark Footwear / Slippers)**: Adaptive low-value brightness filtering coupled with local vertical Sobel gradient energy and ground-sole extension.
-- **Deduplication**: Computes Intersection-over-Union (IoU) between custom floor candidates and YOLO detections to avoid redundant bounding boxes.
-
-### 4. Dynamic Danger Zone & Ground-Contact Distance Estimation
-- **Perspective Geometry**: Approximates physical distance $d$ in meters using the vertical coordinate of the obstacle's bottom ground-contact point ($y_2$):
-
-```math
-y_{\text{norm}} = \frac{y_2 - y_{\min}}{y_{\max} - y_{\min}}
-```
-
-```math
-d = D_{\max} \cdot (1 - y_{\text{norm}})^2 + D_{\min}
-```
-
-- **Corridor Division**: The screen width is partitioned into three vertical sectors:
-  - **Left Corridor**: $0 \le x < 0.35 \times W$
-  - **Center Corridor**: $0.35 \times W \le x \le 0.65 \times W$
-  - **Right Corridor**: $0.65 \times W < x \le W$
-- **Danger Threshold**: A dynamic horizontal danger line ($y = 0.58 \times H$). If an obstacle's ground-contact point crosses below this threshold, the corresponding corridor is flagged as `BLOCKED`.
-
-### 5. Temporal Command Smoothing & Navigation Decision Logic
-To prevent jerky steering caused by transient detection fluctuations, raw corridor flags pass through a **Windowed Majority-Voting Filter** (`CommandSmoother`):
-- Each corridor's blocked state is recorded over a sliding window ($N = 3$ frames).
-- An obstacle is only deemed blocking if present in at least 2 of the last 3 frames.
-
-**Steering Decision Matrix**:
-| Center Zone | Left Zone | Right Zone | Navigation Command | Recommended Steering Angle | Speed % |
-|:-----------:|:---------:|:----------:|:------------------:|:--------------------------:|:-------:|
-| Clear       | Clear     | Clear      | `FORWARD`          | $0^\circ$                  | 100%    |
-| Blocked     | Clear     | Blocked    | `STEER LEFT`       | $-25^\circ$                | 45%     |
-| Blocked     | Blocked   | Clear      | `STEER RIGHT`      | $+25^\circ$                | 45%     |
-| Blocked     | Clear     | Clear      | `AVOID (SLIGHT L)` | $-15^\circ$                | 50%     |
-| Blocked     | Blocked   | Blocked    | `STOP (BLOCKED)`   | $0^\circ$                  | 0%      |
+### 4. 🛑 3-Tier Safety System & Emergency Stop (`wheelchair_vision/navigation/`)
+- **Tier 1 — Caution Ring ($\le 1.35\text{m}$)**: Smoothly reduces speed to `60%` (`CAUTION -> SLOW FORWARD`).
+- **Tier 2 — Avoidance Ring ($\le 0.85\text{m}$, Orange Circle)**: Reroutes Left/Right along the VFH best path while checking **`LEFT FLANK` & `RIGHT FLANK`** so the chair never turns into a side wall.
+- **Tier 3 — Critical Stop Ring ($\le 0.45\text{m}$, Red Circle)**: Immediate automatic full stop (`Speed: 0%`).
+- **Manual Emergency Stop (`E-STOP [SPACE]`)**: Red dashboard button / `Spacebar` shortcut immediately locks speed to `0%` until released.
 
 ---
 
-## 📁 Project Structure
+## 📁 Repository & ROS 2 File Map
 
 ```
 smart-wheelchair/
-├── main.py                     # Primary entrypoint (CLI runner & thread orchestrator)
-├── requirements.txt            # Python dependencies
-├── .gitignore                  # Git ignore rules (weights, venv, caches)
-├── README.md                   # System documentation
+├── main.py                              # 🚀 Main Entrypoint (Auto-loads ROS 2, starts AI, LiDAR, Fusion & Web GUI)
+├── requirements.txt                     # Python dependencies
+├── README.md                            # System documentation
 │
-├── wheelchair_vision/          # Core Modular Vision Package (Subsystem 1)
-│   ├── __init__.py             # Package root
-│   ├── config.py               # Centralized configuration dataclass
-│   │
-│   ├── vision/                 # Computer Vision & Perception
-│   │   ├── __init__.py
-│   │   ├── camera.py           # ZeroLagCamera (V4L2 hardware capture thread)
-│   │   ├── yolo_detector.py    # YOLOv8 + ByteTrack object detector
-│   │   └── floor_detector.py   # Multi-cue floor horizon segmentation
-│   │
-│   ├── navigation/             # Navigation & Decision Logic
-│   │   ├── __init__.py
-│   │   ├── danger_zone.py      # ZoneEvaluator & Ground distance estimation
-│   │   └── smoother.py         # Temporal CommandSmoother & Steering matrix
-│   │
-│   └── web/                    # Telemetry Server & Web HUD
-│       ├── __init__.py
-│       ├── app.py              # Flask application factory & REST routes
-│       ├── streamer.py         # FrameStreamer (HUD overlays & MJPEG stream)
-│       └── templates/
-│           └── index.html      # Responsive dark-theme dashboard UI
+├── wheelchair_vision/                   # Core Modular Package
+│   ├── config.py                        # ⚙️ All settings (Camera, LiDAR ranges, safety rings, FOV)
+│   ├── vision/                          # 👁️ Subsystem 1: Camera Perception
+│   │   ├── camera.py                    # ZeroLagCamera (30 FPS V4L2 thread + hot-plug fallback)
+│   │   ├── yolo_detector.py             # YOLOv8n + ByteTrack object tracker
+│   │   └── floor_detector.py            # Multi-cue floor box & slipper detector
+│   ├── lidar/                           # 📡 Subsystem 2: 360° RPLiDAR & Path Planning
+│   │   ├── ros2_scanner.py              # ROS 2 /scan subscriber, auto-launcher, clustering & VFH planner
+│   │   └── radar_renderer.py            # 600x480 2D Bird's-Eye View (BEV) Radar MJPEG streamer
+│   ├── fusion/                          # 🔗 Subsystem 3: Camera + LiDAR Sensor Fusion
+│   │   └── sensor_fusion.py             # Ray-to-pixel projection, [FUSED] depth & corridor merger
+│   ├── navigation/                      # 🧭 Subsystem 4: Safety & Decision Arbitrator
+│   │   ├── danger_zone.py               # Optical corridor evaluator
+│   │   └── smoother.py                  # Temporal filter, 3-tier safety logic & E-Stop override
+│   └── web/                             # 🖥️ Subsystem 5: Web Dashboard & REST API
+│       ├── app.py                       # Flask server (/video_feed, /lidar_feed, /telemetry, /control)
+│       ├── streamer.py                  # Camera HUD renderer & MJPEG streamer
+│       └── templates/index.html         # Dark-mode dual-stream GUI
 │
-└── legacy/                     # Step-by-Step Evolutionary Prototypes
-    ├── README.md               # Explanation of development stages
-    ├── step1_camera_test.py    # Milestone 1: Hardware camera test
-    ├── step2_yolo_obstacle_detector.py  # Milestone 2: Basic YOLO detection
-    ├── step3_advanced_robot_vision.py   # Milestone 3: Tracking & floor cues
-    └── step4_web_dashboard.py # Milestone 4: Monolithic prototype
+└── legacy/                              # Early development prototypes (Steps 1–4)
+```
+
+### ROS 2 Workspace (`~/lidar_ws`) Reference
+| Item | Name / Path | Role |
+| :--- | :--- | :--- |
+| **ROS 2 Distro** | **ROS 2 Jazzy** (`/opt/ros/jazzy`) | Middleware providing `rclpy` and `sensor_msgs/msg/LaserScan`. |
+| **Driver Package** | `sllidar_ros2` (`~/lidar_ws/src/sllidar_ros2`) | Official Slamtec C++ ROS 2 package for RPLiDAR A1M8. |
+| **Publisher Node** | `/sllidar_node` | Reads `/dev/ttyUSB0` and publishes 360° scans to `/scan` @ 10 Hz. |
+| **Subscriber Node** | `/wheelchair_lidar_perception` | Our Python node in `ros2_scanner.py` consuming `/scan`. |
+
+---
+
+## 🚀 How to Run
+
+### 1. Run the Complete System (AI Vision + LiDAR + Fusion + Web GUI)
+You only need **one command**—`main.py` automatically sources ROS 2 Jazzy, starts `sllidar_node` in the background if needed, and launches the Web GUI:
+
+```bash
+cd ~/smart-wheelchair   # or "/home/mohamed-khairy/Graduation Project Mecha"
+./venv/bin/python3 main.py
+```
+👉 Open your browser at: **[http://localhost:5000](http://localhost:5000)** *(or `http://10.0.0.2:5000` when running on the Mini PC)*.
+
+### 2. Keyboard Shortcuts on the Web Dashboard
+| Key / Button | Action |
+| :---: | :--- |
+| **`Spacebar`** | **🛑 Engage / Release Emergency Stop (`E-STOP`)** |
+| **`[r]`** | Rotate LiDAR $0^\circ$ Front reference by $+90^\circ$ |
+| **`Fine Align -5° / +5°`** | Fine-tune LiDAR-to-Camera desk alignment angle |
+| **`[l]`** | Toggle projected LiDAR laser dots on the Camera video |
+| **`[c]`** | Toggle 360° obstacle cluster bounding boxes on the Radar |
+| **`[z]`** | Cycle Radar zoom range (`2.5m` / `3.5m` / `6.0m`) |
+| **`[u]` / `[e]`** | Toggle Unknown Floor-Box detector / Edge segmentation mask |
+| **`[+]` / `[-]`** | Move Camera danger line UP / DOWN |
+
+### 3. Optional: Run Standalone ROS 2 `rviz2` Visualizer
+```bash
+source /opt/ros/jazzy/setup.bash
+source ~/lidar_ws/install/setup.bash
+ros2 launch sllidar_ros2 view_sllidar_a1_launch.py
 ```
 
 ---
 
-## 💻 Installation & Setup
+## 🌐 REST Telemetry API (`GET /telemetry`)
 
-### Prerequisites
-- **Operating System**: Linux (Ubuntu 20.04/22.04 LTS recommended)
-- **Python**: 3.10 or higher
-- **Camera**: Any USB V4L2 webcam (wide-angle lens recommended)
+External controllers or scripts can poll live fused state at `http://localhost:5000/telemetry`:
 
-### Local Setup
-```bash
-# 1. Clone the repository
-git clone git@github.com:khairycse404/smart-wheelchair.git
-cd smart-wheelchair
-
-# 2. Create and activate a Python virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# 3. Install dependencies
-pip install --upgrade pip
-pip install -r requirements.txt
-
-# 4. Download lightweight YOLOv8 weights (if not already present)
-python -c "from ultralytics import YOLO; YOLO('yolov8n.pt')"
-```
-
-### Remote Mini PC Deployment (via Ethernet / WiFi)
-When running headlessly on the wheelchair's on-board **HP EliteDesk Mini PC**:
-```bash
-# SSH into the Mini PC
-ssh mahmoud-bahlol@10.0.0.2
-
-# Navigate to project directory
-cd ~/Graduation\ Project\ Mecha
-
-# Launch the vision system bound to all network interfaces
-python3 main.py --host 0.0.0.0 --port 5000
-```
-Open your laptop browser and navigate to:  
-👉 **`http://10.0.0.2:5000`**
-
----
-
-## 🎮 Usage & Running
-
-```bash
-# Standard launch with default settings (port 5000)
-python3 main.py
-
-# Custom host IP and port
-python3 main.py --host 192.168.1.100 --port 8080
-```
-
-### CLI Arguments
-| Flag | Default | Description |
-|:-----|:-------:|:------------|
-| `--host` | `0.0.0.0` | IP interface to bind the web server |
-| `--port` | `5000` | Port for the web dashboard and MJPEG stream |
-
----
-
-## 🌐 Web Telemetry & REST API
-
-The system provides a built-in REST API allowing the **Arduino microcontroller** or external nodes to poll real-time obstacle avoidance telemetry:
-
-### 1. Telemetry Endpoint: `GET /telemetry`
-Returns live JSON data containing FPS rates, active navigation commands, corridor clearance, and obstacle counts.
-
-**Sample Response**:
 ```json
 {
-  "fps": 30.1,
-  "ai_fps": 14.8,
-  "command": "FORWARD",
+  "fps": 29.4,
+  "ai_fps": 22.1,
+  "lidar_connected": true,
+  "lidar_hz": 7.1,
+  "command": "CAUTION (0.93m) -> SLOW FORWARD",
   "steer_deg": 0,
-  "speed_pct": 100,
-  "closest_dist_m": 1.85,
+  "speed_pct": 60,
+  "estop_active": false,
   "left_zone": "CLEAR",
   "center_zone": "CLEAR",
   "right_zone": "CLEAR",
-  "objects_count": 2
+  "lidar_best_heading_deg": 0.0,
+  "lidar_best_clearance_m": 1.04,
+  "lidar_obstacles": [
+    {"id": 1, "min_dist_m": 0.93, "angle_deg": 24.2, "width_m": 1.51}
+  ]
 }
 ```
-
-### 2. Video Feed: `GET /video_feed`
-Streams high-speed multipart MJPEG video directly compatible with `<img>` tags in web browsers or OpenCV `cv2.VideoCapture` clients.
-
-### 3. Interactive Web Dashboard: `GET /`
-Modern, dark-mode user interface displaying the live video HUD, corridor status indicators, navigation command badges, and interactive controls to adjust danger thresholds in real time.
-
----
-
-## ⚙️ Configuration Parameters
-
-All system hyperparameters are centralized in [`wheelchair_vision/config.py`](file:///home/mohamed-khairy/Graduation%20Project%20Mecha/wheelchair_vision/config.py):
-
-| Parameter | Default | Purpose |
-|:----------|:-------:|:--------|
-| `CAPTURE_WIDTH` / `HEIGHT` | `640 x 480` | Native camera resolution (4:3 aspect ratio provides maximum vertical field of view) |
-| `YOLO_IMGSZ` | `320` | Downscaled input resolution for YOLO inference (optimizes CPU throughput) |
-| `CONFIDENCE_THRESHOLD` | `0.35` | Minimum confidence score for YOLO detections |
-| `DEFAULT_DANGER_Y_RATIO` | `0.58` | Vertical position of the safety danger line (fraction of frame height) |
-| `USE_UNKNOWN_HELPER` | `True` | Enables the multi-cue floor horizon hazard segmentation |
-| `JPEG_QUALITY` | `80` | MJPEG streaming compression quality (balanced clarity vs. bandwidth) |
-
----
-
-## 📜 Development Milestones (Legacy Prototypes)
-
-The [`legacy/`](file:///home/mohamed-khairy/Graduation%20Project%20Mecha/legacy) folder retains the step-by-step engineering progression for academic review:
-- `step1_camera_test.py`: V4L2 camera latency and FPS testing.
-- `step2_yolo_obstacle_detector.py`: Proof-of-concept YOLOv8 integration.
-- `step3_advanced_robot_vision.py`: ByteTrack and multi-cue floor hazard segmentation prototype.
-- `step4_web_dashboard.py`: Early monolithic prototype combining AI and web streaming.
-
----
-
-## 👥 Contributors & Acknowledgments
-- **Mechatronics Engineering Graduation Project Team**
-- Built with [OpenCV](https://opencv.org/), [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics), and [Flask](https://flask.palletsprojects.com/).

@@ -3,151 +3,247 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Wheelchair AI Vision Dashboard</title>
+    <title>Smart Wheelchair — AI Vision & 360° LiDAR Dashboard</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             background: #0f172a;
             color: #f8fafc;
             font-family: system-ui, -apple-system, sans-serif;
-            padding: 16px;
+            padding: 14px;
         }
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             background: #1e293b;
-            padding: 14px 20px;
+            padding: 12px 20px;
             border-radius: 12px;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
             border: 1px solid #334155;
         }
-        .header h1 { font-size: 1.25rem; color: #38bdf8; }
+        .header h1 { font-size: 1.18rem; color: #38bdf8; }
+        .badges { display: flex; gap: 10px; align-items: center; }
         .badge {
             background: #22c55e;
             color: #052e16;
             padding: 4px 12px;
             border-radius: 999px;
             font-weight: 700;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
         }
-        .grid {
+        .badge.warn { background: #f59e0b; color: #451a03; }
+        .badge.danger { background: #ef4444; color: #fff; }
+        .streams-grid {
             display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 16px;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 14px;
         }
-        @media (max-width: 900px) {
-            .grid { grid-template-columns: 1fr; }
+        @media (max-width: 1100px) {
+            .streams-grid { grid-template-columns: 1fr; }
         }
         .video-card {
             background: #1e293b;
             border-radius: 12px;
-            padding: 12px;
+            padding: 10px;
             border: 1px solid #334155;
             text-align: center;
         }
+        .video-card-title {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
         .video-card img {
             width: 100%;
-            max-height: 74vh;
+            max-height: 54vh;
             object-fit: contain;
             border-radius: 8px;
             background: #000;
         }
-        .telemetry-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+        .bottom-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 1.1fr 1fr;
+            gap: 14px;
+        }
+        @media (max-width: 1100px) {
+            .bottom-grid { grid-template-columns: 1fr; }
         }
         .card {
             background: #1e293b;
             border-radius: 12px;
-            padding: 16px;
+            padding: 14px;
             border: 1px solid #334155;
         }
         .card-label {
-            font-size: 0.8rem;
+            font-size: 0.76rem;
             text-transform: uppercase;
             color: #94a3b8;
             margin-bottom: 6px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
         }
         .card-value {
-            font-size: 1.35rem;
+            font-size: 1.18rem;
             font-weight: 700;
         }
-        .zones {
+        .zones-3, .zones-6 {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-top: 8px;
+            gap: 6px;
+            margin-top: 6px;
         }
         .zone-box {
-            padding: 12px 8px;
+            padding: 7px 6px;
             border-radius: 8px;
             text-align: center;
             font-weight: 700;
-            font-size: 0.9rem;
+            font-size: 0.78rem;
         }
-        .clear { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid #22c55e; }
+        .clear { background: rgba(34, 197, 94, 0.18); color: #4ade80; border: 1px solid #22c55e; }
         .blocked { background: rgba(239, 68, 68, 0.25); color: #f87171; border: 1px solid #ef4444; }
         .btn-group {
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
-            margin-top: 8px;
+            margin-top: 7px;
         }
         button {
             background: #334155;
             color: #f8fafc;
             border: 1px solid #475569;
-            padding: 8px 12px;
+            padding: 8px 10px;
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
+            font-size: 0.8rem;
             flex: 1;
         }
         button:hover { background: #475569; }
+        .estop-btn {
+            background: #dc2626;
+            border: 2px solid #f87171;
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 0.92rem;
+            padding: 10px;
+            margin-top: 10px;
+            width: 100%;
+            letter-spacing: 0.04em;
+        }
+        .estop-btn:hover { background: #b91c1c; }
+        .estop-btn.active {
+            background: #7f1d1d;
+            border-color: #ef4444;
+            color: #fca5a5;
+        }
+        .obs-list {
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            font-size: 0.8rem;
+        }
+        .obs-item {
+            display: flex;
+            justify-content: space-between;
+            background: #0f172a;
+            padding: 5px 10px;
+            border-radius: 6px;
+            border-left: 3px solid #38bdf8;
+        }
+        .obs-item.danger {
+            border-left-color: #ef4444;
+            color: #fca5a5;
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>Smart Wheelchair — Mini PC AI Vision GUI</h1>
-        <span class="badge">ZERO-LAG STREAM</span>
+        <h1>Smart Wheelchair — Subsystem 1 (AI Vision) + Subsystem 2 (360° RPLiDAR A1M8)</h1>
+        <div class="badges">
+            <span class="badge" id="estop-badge" style="display:none;">🛑 E-STOP ENGAGED</span>
+            <span class="badge" id="lidar-badge">LIDAR: CONNECTING...</span>
+            <span class="badge">ZERO-LAG STREAM</span>
+        </div>
     </div>
-    <div class="grid">
+
+    <div class="streams-grid">
         <div class="video-card">
+            <div class="video-card-title">Subsystem 1: Front Camera AI Vision (YOLOv8 + Floor Segmentation)</div>
             <img src="/video_feed" alt="Live AI Camera Stream">
         </div>
-        <div class="telemetry-panel">
-            <div class="card">
-                <div class="card-label">Navigation Decision</div>
-                <div class="card-value" id="nav-cmd" style="color: #38bdf8;">INITIALIZING...</div>
+        <div class="video-card">
+            <div class="video-card-title">Subsystem 2: 360° RPLiDAR A1M8 Radar (Obstacle Clustering + Path Planner)</div>
+            <img src="/lidar_feed" alt="Live 360 LiDAR Radar Stream">
+        </div>
+    </div>
+
+    <div class="bottom-grid">
+        <div class="card">
+            <div class="card-label">Autonomous Navigation & Safety Decision</div>
+            <div class="card-value" id="nav-cmd" style="color: #38bdf8; margin-bottom: 6px;">INITIALIZING...</div>
+            <div id="motor-cmd" style="font-size: 0.98rem; font-weight: 700; color: #e2e8f0; margin-bottom: 4px;">Steer: 0° | Speed: 0%</div>
+            <div id="path-cmd" style="font-size: 0.85rem; color: #4ade80; margin-bottom: 6px;">Best Free Path: 0° (3.50m clear)</div>
+            <div id="fps" style="font-size: 0.82rem; color: #94a3b8;">Video: 0 FPS | AI: 0 Hz | LiDAR: 0 Hz</div>
+
+            <button class="estop-btn" id="estop-btn" onclick="control('toggle_estop')">
+                🛑 EMERGENCY STOP (E-STOP) [SPACE]
+            </button>
+
+            <div class="card-label" style="margin-top: 12px;">Detected 360° Obstacles (Clustered)</div>
+            <div class="obs-list" id="obs-list">
+                <div class="obs-item"><span>Waiting for LiDAR clusters...</span></div>
             </div>
-            <div class="card">
-                <div class="card-label">Zone Status (Left / Center / Right)</div>
-                <div class="zones">
-                    <div class="zone-box clear" id="z_left">LEFT<br>CLEAR</div>
-                    <div class="zone-box clear" id="z_center">CENTER<br>CLEAR</div>
-                    <div class="zone-box clear" id="z_right">RIGHT<br>CLEAR</div>
-                </div>
+        </div>
+
+        <div class="card">
+            <div class="card-label">Fused Frontal Corridors (Camera + LiDAR)</div>
+            <div class="zones-3">
+                <div class="zone-box clear" id="z_left">LEFT<br>CLEAR</div>
+                <div class="zone-box clear" id="z_center">CENTER<br>CLEAR</div>
+                <div class="zone-box clear" id="z_right">RIGHT<br>CLEAR</div>
             </div>
-            <div class="card">
-                <div class="card-label">Remote Controls (Tune Live on Mini PC)</div>
-                <div class="btn-group">
-                    <button onclick="control('line_up')">Line UP (+)</button>
-                    <button onclick="control('line_down')">Line DOWN (-)</button>
-                </div>
-                <div class="btn-group">
-                    <button onclick="control('toggle_unknown')">Toggle Unknown-Box [u]</button>
-                    <button onclick="control('toggle_edges')">Toggle Mask View [e]</button>
-                </div>
+            <div class="card-label" style="margin-top: 12px;">360° LiDAR Sectors (Metric Laser)</div>
+            <div class="zones-6">
+                <div class="zone-box clear" id="l_fl">FRONT-L<br>--</div>
+                <div class="zone-box clear" id="l_fc">FRONT-C<br>--</div>
+                <div class="zone-box clear" id="l_fr">FRONT-R<br>--</div>
+                <div class="zone-box clear" id="l_lf">L-FLANK<br>--</div>
+                <div class="zone-box clear" id="l_rear">REAR<br>--</div>
+                <div class="zone-box clear" id="l_rf">R-FLANK<br>--</div>
             </div>
-            <div class="card">
-                <div class="card-label">Steering & Speed Command</div>
-                <div class="card-value" id="motor-cmd">Steer: 0° | Speed: 0%</div>
+        </div>
+
+        <div class="card">
+            <div class="card-label">Camera & Sensor Fusion Controls</div>
+            <div class="btn-group">
+                <button onclick="control('line_up')">Cam Line UP (+)</button>
+                <button onclick="control('line_down')">Cam Line DOWN (-)</button>
             </div>
-            <div class="card">
-                <div class="card-label">Mini PC Performance</div>
-                <div class="card-value" id="fps" style="font-size: 1.05rem;">Video: 0 FPS | AI: 0 Hz | Objects: 0</div>
+            <div class="btn-group">
+                <button onclick="control('toggle_unknown')">Unknown-Box [u]</button>
+                <button onclick="control('toggle_edges')">Edge Mask [e]</button>
+                <button onclick="control('toggle_lidar_cam')">Laser on Cam [l]</button>
+            </div>
+
+            <div class="card-label" style="margin-top: 12px;">360° LiDAR & Desk Alignment Controls</div>
+            <div class="btn-group">
+                <button onclick="control('lidar_danger_up')">Danger Radius +</button>
+                <button onclick="control('lidar_danger_down')">Danger Radius -</button>
+            </div>
+            <div class="btn-group">
+                <button onclick="control('lidar_align_left')">Fine Align -5°</button>
+                <button onclick="control('lidar_rotate')">Rotate +90° [r]</button>
+                <button onclick="control('lidar_align_right')">Fine Align +5°</button>
+            </div>
+            <div class="btn-group">
+                <button onclick="control('lidar_zoom')">Zoom Radar [z]</button>
+                <button onclick="control('toggle_clusters')">Obstacle Boxes [c]</button>
             </div>
         </div>
     </div>
@@ -158,28 +254,100 @@
         }
 
         window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                control('toggle_estop');
+            }
             if (e.key === '+' || e.key === '=') control('line_up');
             if (e.key === '-' || e.key === '_') control('line_down');
             if (e.key === 'u' || e.key === 'U') control('toggle_unknown');
             if (e.key === 'e' || e.key === 'E') control('toggle_edges');
+            if (e.key === 'l' || e.key === 'L') control('toggle_lidar_cam');
+            if (e.key === 'r' || e.key === 'R') control('lidar_rotate');
+            if (e.key === 'z' || e.key === 'Z') control('lidar_zoom');
+            if (e.key === 'c' || e.key === 'C') control('toggle_clusters');
         });
 
         setInterval(async () => {
             try {
                 const res = await fetch('/telemetry');
                 const data = await res.json();
-                document.getElementById('nav-cmd').innerText = data.command;
+
+                const navEl = document.getElementById('nav-cmd');
+                navEl.innerText = data.command;
+                if (data.speed_pct === 0) {
+                    navEl.style.color = '#ef4444';
+                } else if (data.speed_pct < 80) {
+                    navEl.style.color = '#f59e0b';
+                } else {
+                    navEl.style.color = '#4ade80';
+                }
+
                 document.getElementById('motor-cmd').innerText = `Steer: ${data.steer_deg > 0 ? '+' : ''}${data.steer_deg}° | Speed: ${data.speed_pct}%`;
-                document.getElementById('fps').innerText = `Video: ${data.fps} FPS | AI: ${data.ai_fps} Hz | Objects: ${data.objects_count}`;
+                document.getElementById('path-cmd').innerText = `Best Free Path: ${data.lidar_best_heading_deg > 0 ? '+' : ''}${data.lidar_best_heading_deg || 0}° (${(data.lidar_best_clearance_m || 0).toFixed(2)}m clear)`;
+                document.getElementById('fps').innerText = `Video: ${data.fps} FPS | AI: ${data.ai_fps} Hz | LiDAR: ${data.lidar_hz || 0} Hz | Cam Obj: ${data.objects_count}`;
+
+                const estopBadge = document.getElementById('estop-badge');
+                const estopBtn = document.getElementById('estop-btn');
+                if (data.estop_active) {
+                    estopBadge.style.display = 'inline-block';
+                    estopBadge.className = 'badge danger';
+                    estopBtn.className = 'estop-btn active';
+                    estopBtn.innerText = '▶️ RELEASE EMERGENCY STOP [SPACE]';
+                } else {
+                    estopBadge.style.display = 'none';
+                    estopBtn.className = 'estop-btn';
+                    estopBtn.innerText = '🛑 EMERGENCY STOP (E-STOP) [SPACE]';
+                }
+
+                const lBadge = document.getElementById('lidar-badge');
+                if (data.lidar_connected) {
+                    lBadge.className = 'badge';
+                    lBadge.innerText = `LIDAR: ${data.lidar_hz} Hz`;
+                } else {
+                    lBadge.className = 'badge warn';
+                    lBadge.innerText = 'LIDAR: WAITING';
+                }
 
                 const setZone = (id, name, state) => {
                     const el = document.getElementById(id);
-                    el.className = 'zone-box ' + (state === 'BLOCKED' ? 'blocked' : 'clear');
-                    el.innerHTML = `${name}<br>${state}`;
+                    const isBlk = state && state.startsWith('BLOCKED');
+                    el.className = 'zone-box ' + (isBlk ? 'blocked' : 'clear');
+                    el.innerHTML = `${name}<br>${state || 'CLEAR'}`;
                 };
                 setZone('z_left', 'LEFT', data.left_zone);
                 setZone('z_center', 'CENTER', data.center_zone);
                 setZone('z_right', 'RIGHT', data.right_zone);
+
+                if (data.lidar_sectors) {
+                    const setLidarSec = (id, label, sec) => {
+                        if (!sec) return;
+                        const el = document.getElementById(id);
+                        el.className = 'zone-box ' + (sec.blocked ? 'blocked' : 'clear');
+                        const dTxt = sec.min_dist < 9.0 ? `${sec.min_dist.toFixed(2)}m` : 'CLEAR';
+                        el.innerHTML = `${label}<br>${dTxt}`;
+                    };
+                    setLidarSec('l_fl', 'FRONT-L', data.lidar_sectors.front_left);
+                    setLidarSec('l_fc', 'FRONT-C', data.lidar_sectors.front_center);
+                    setLidarSec('l_fr', 'FRONT-R', data.lidar_sectors.front_right);
+                    setLidarSec('l_lf', 'L-FLANK', data.lidar_sectors.left_flank);
+                    setLidarSec('l_rf', 'R-FLANK', data.lidar_sectors.right_flank);
+                    setLidarSec('l_rear', 'REAR', data.lidar_sectors.rear);
+                }
+
+                if (data.lidar_obstacles && data.lidar_obstacles.length > 0) {
+                    const obsHtml = data.lidar_obstacles.slice(0, 4).map(o => {
+                        const cls = o.min_dist_m <= 0.85 ? 'obs-item danger' : 'obs-item';
+                        const sign = o.angle_deg > 0 ? '+' : '';
+                        return `<div class="${cls}">
+                            <span><b>Obstacle #${o.id}</b> (${sign}${o.angle_deg}°)</span>
+                            <span>Dist: <b>${o.min_dist_m.toFixed(2)}m</b> | Width: ${o.width_m.toFixed(2)}m</span>
+                        </div>`;
+                    }).join('');
+                    document.getElementById('obs-list').innerHTML = obsHtml;
+                } else {
+                    document.getElementById('obs-list').innerHTML = '<div class="obs-item"><span>No obstacles within 3.5m</span></div>';
+                }
             } catch (e) {}
         }, 200);
     </script>
