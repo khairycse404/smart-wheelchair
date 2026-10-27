@@ -1,7 +1,6 @@
 # 🦼 Autonomous Smart Wheelchair
 ### AI Computer Vision, 360° LiDAR Mapping & Multi-Sensor Fusion
-
-> **Mechatronics Engineering Graduation Project**  
+ 
 > An intelligent perception, obstacle-avoidance, and autonomous navigation system built on a **full-scale commercial electric wheelchair**. Powered by an on-board **HP EliteDesk Mini PC** (Ubuntu + ROS 2 Jazzy), combining **YOLOv8 AI Vision**, **360° Slamtec RPLiDAR A1M8**, **Multi-Sensor Fusion**, and an **Arduino** motor interface.
 
 ---
