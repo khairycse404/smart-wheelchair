@@ -320,6 +320,11 @@ class ArduinoSerialBridge:
                 )
                 rev_drive = self.control_settings.get("reverse_drive", False)
                 rev_steer = self.control_settings.get("reverse_steer", False)
+                dac_y_enabled = self.control_settings.get("dac_y_enabled", True)
+                dac_x_enabled = self.control_settings.get("dac_x_enabled", False)
+                stop_distance_m = self.control_settings.get(
+                    "lidar_danger_m", config.LIDAR_DEFAULT_DANGER_M
+                )
                 gps_enabled = self.control_settings.get("gps_enabled", False)
 
                 auto_speed = int(self.telemetry.get("auto_speed_pct", 0))
@@ -346,10 +351,17 @@ class ArduinoSerialBridge:
                 out_speed, out_steer = 0, 0
                 active_status = "STANDBY"
 
+            if not dac_y_enabled:
+                out_speed = 0
+            if not dac_x_enabled:
+                out_steer = 0
+
             dac_y, dac_x, volt_y, volt_x = self.compute_dac_outputs(
                 out_speed, out_steer, rev_drive, rev_steer
             )
-            relay_state = (not estop_active) and (drive_mode in ("MANUAL", "TEST", "AUTO"))
+            relay_state = (not estop_active) and (drive_mode in ("MANUAL", "TEST", "AUTO")) and (
+                dac_y_enabled or dac_x_enabled
+            )
 
             # Transmit to physical Arduino if connected
             active_port_name = "DISCONNECTED (SIMULATED PREVIEW)"
@@ -383,11 +395,14 @@ class ArduinoSerialBridge:
                 self.telemetry["active_status"] = active_status
                 self.telemetry["steer_deg"] = out_steer
                 self.telemetry["speed_pct"] = out_speed
+                self.telemetry["stop_distance_m"] = stop_distance_m
                 self.telemetry["arduino"].update(
                     {
                         "connected": connected,
                         "port": active_port_name,
                         "baud": self.control_settings.get("arduino_baud", config.ARDUINO_BAUD_RATE),
+                        "dac_y_enabled": dac_y_enabled,
+                        "dac_x_enabled": dac_x_enabled,
                         "dac_speed": dac_y,
                         "dac_steer": dac_x,
                         "voltage_speed": volt_y,

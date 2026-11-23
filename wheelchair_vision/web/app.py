@@ -151,6 +151,53 @@ def create_app(
         arduino_bridge.sync_gps_state()
         return jsonify({"ok": True, "gps_enabled": en})
 
+    @app.route("/api/dac_toggle", methods=["POST"])
+    def toggle_dac_channel():
+        data = request.get_json(silent=True) or {}
+        ch = str(data.get("channel", "")).upper().strip()
+        with shared_state.lock:
+            if ch == "Y":
+                if "enabled" in data:
+                    control_settings["dac_y_enabled"] = bool(data["enabled"])
+                else:
+                    control_settings["dac_y_enabled"] = not control_settings.get(
+                        "dac_y_enabled", True
+                    )
+            elif ch == "X":
+                if "enabled" in data:
+                    control_settings["dac_x_enabled"] = bool(data["enabled"])
+                else:
+                    control_settings["dac_x_enabled"] = not control_settings.get(
+                        "dac_x_enabled", False
+                    )
+            return jsonify(
+                {
+                    "ok": True,
+                    "dac_y_enabled": control_settings.get("dac_y_enabled", True),
+                    "dac_x_enabled": control_settings.get("dac_x_enabled", False),
+                }
+            )
+
+    @app.route("/api/stop_distance", methods=["POST"])
+    def set_stop_distance():
+        data = request.get_json(silent=True) or {}
+        val = data.get("stop_distance_m")
+        with shared_state.lock:
+            if val is not None:
+                try:
+                    clamped = round(max(0.25, min(3.50, float(val))), 2)
+                    control_settings["lidar_danger_m"] = clamped
+                except ValueError:
+                    pass
+            return jsonify(
+                {
+                    "ok": True,
+                    "stop_distance_m": control_settings.get(
+                        "lidar_danger_m", config.LIDAR_DEFAULT_DANGER_M
+                    ),
+                }
+            )
+
     @app.route("/control/<action>", methods=["POST"])
     def control(action):
         with shared_state.lock:

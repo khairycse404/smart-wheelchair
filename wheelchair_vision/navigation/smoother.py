@@ -37,10 +37,17 @@ def get_navigation_command(
     lidar_best_clearance_m: float = 3.5,
     danger_dist_m: float = None,
     estop_active: bool = False,
+    dac_x_enabled: bool = False,
 ):
     """
     Arbitrates the wheelchair's steering angle, speed percentage, and safety state
     by combining Camera corridors, 360° LiDAR sectors, VFH path planning, and E-Stop.
+
+    When `dac_x_enabled` is False (1-DAC Forward/Backward Mode):
+      - The wheelchair never commands Left/Right steering (`steer_deg = 0`).
+      - Whenever an obstacle is detected within `danger_dist_m` (the user's tuned
+        Stop Distance in meters) or blocks the center corridor, the chair immediately
+        commands `STOP (0%)`.
 
     Returns:
         (command_text, steer_deg, speed_pct, display_color_bgr)
@@ -49,9 +56,9 @@ def get_navigation_command(
     if estop_active:
         return "EMERGENCY STOP ENGAGED (E-STOP ACTIVE)", 0, 0, (0, 0, 255)
 
-    danger_m = danger_dist_m or config.LIDAR_DEFAULT_DANGER_M
-    crit_m = config.LIDAR_CRITICAL_STOP_M
-    caution_m = config.LIDAR_CAUTION_SLOW_M
+    stop_dist_m = danger_dist_m or config.LIDAR_DEFAULT_DANGER_M
+    crit_m = min(config.LIDAR_CRITICAL_STOP_M, stop_dist_m)
+    caution_m = stop_dist_m + 0.45
 
     # Extract LiDAR sector states if connected
     if lidar_sectors:
@@ -78,25 +85,47 @@ def get_navigation_command(
     blocked_right = cam_blocked_r or lidar_r_blk
     front_min_m = min(cam_min_dist_m, lidar_front_min)
 
-    # 1. Tier 1 Safety: Automatic Critical Proximity Stop (< 0.45m in front)
+    # =========================================================================
+    # 1-DAC MODE (DAC X / Steering Disabled -> Straight Drive & Stop at Distance)
+    # =========================================================================
+    if not dac_x_enabled:
+        if front_min_m <= stop_dist_m or blocked_center:
+            dist_label = f"{front_min_m:.2f}m" if front_min_m < 9.0 else "CENTER"
+            return (
+                f"OBSTACLE AT {dist_label} (STOP <= {stop_dist_m:.2f}m) -> STOP!",
+                0,
+                0,
+                (0, 0, 255),
+            )
+        if front_min_m <= caution_m or blocked_left or blocked_right:
+            return (
+                f"CAUTION ({front_min_m:.2f}m) -> SLOW FORWARD",
+                0,
+                55,
+                (0, 220, 255),
+            )
+        return "CLEAR PATH -> MOVE FORWARD", 0, 100, (0, 255, 0)
+
+    # =========================================================================
+    # 2-DAC MODE (Both DAC Y Speed & DAC X Steering Enabled)
+    # =========================================================================
+    # 1. Tier 1 Safety: Automatic Critical Proximity Stop
     if front_min_m <= crit_m:
         return f"CRITICAL OBSTACLE ({front_min_m:.2f}m) -> AUTO-STOP!", 0, 0, (0, 0, 255)
 
-    # 2. Tier 2 Safety: Center Corridor Blocked -> Reroute using Best Free Path + Flank Protection
-    if blocked_center:
+    # 2. Tier 2 Safety: Center Corridor Blocked or Within Stop Distance -> Reroute or Stop
+    if blocked_center or front_min_m <= stop_dist_m:
         can_go_left = (not blocked_left) and (not flank_l_blk)
         can_go_right = (not blocked_right) and (not flank_r_blk)
 
         if not can_go_left and not can_go_right:
-            # Check if VFH path planner found an intermediate passable gap
-            if lidar_best_clearance_m >= danger_m and abs(lidar_best_heading_deg) >= 15.0:
+            if lidar_best_clearance_m >= stop_dist_m and abs(lidar_best_heading_deg) >= 15.0:
                 steer = int(lidar_best_heading_deg)
                 dir_str = "LEFT" if steer < 0 else "RIGHT"
                 return f"REROUTE TO GAP -> STEER {dir_str} ({steer:+d} deg)", steer, 35, (0, 165, 255)
-            return "ALL SAFE PATHS BLOCKED -> STOP!", 0, 0, (0, 0, 255)
+            return f"OBSTACLE AT {front_min_m:.2f}m -> ALL PATHS BLOCKED (STOP!)", 0, 0, (0, 0, 255)
 
         if can_go_left and can_go_right:
-            # Choose direction favored by LiDAR VFH path planner
             if lidar_best_heading_deg <= 0:
                 steer = int(min(-25.0, lidar_best_heading_deg))
                 return f"AVOID OBSTACLE -> STEER LEFT ({steer:+d} deg)", steer, 45, (0, 165, 255)
@@ -116,7 +145,7 @@ def get_navigation_command(
     if blocked_right and not blocked_left and not flank_l_blk:
         return "SLIGHT LEFT (AVOID RIGHT HAZARD)", -18, 65, (0, 230, 200)
 
-    # 4. Tier 3 Safety: Caution Zone (0.85m < dist <= 1.35m) -> Proportional Slowdown
+    # 4. Tier 3 Safety: Caution Zone -> Proportional Slowdown
     if front_min_m <= caution_m:
         steer_hint = int(lidar_best_heading_deg * 0.35) if abs(lidar_best_heading_deg) >= 10 else 0
         return f"CAUTION ({front_min_m:.2f}m) -> SLOW FORWARD", steer_hint, 60, (0, 220, 255)

@@ -4,25 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light dark">
-    <title>Autonomous Smart Wheelchair — Perception &amp; Motor Control Console</title>
+    <title>Autonomous Smart Wheelchair — Control Console</title>
     <style>
         :root {
             color-scheme: dark;
-            --bg-canvas: #0b1120;
-            --bg-surface: #131c31;
-            --bg-elevated: #1b2640;
-            --bg-input: #0f172a;
-            --border-subtle: #293856;
-            --border-strong: #3b4f75;
-            --text-primary: #f1f5f9;
+            --bg-canvas: #090e1a;
+            --bg-surface: #111827;
+            --bg-elevated: #1e293b;
+            --bg-input: #0b1120;
+            --border-subtle: #1f2d47;
+            --border-strong: #334155;
+            --text-primary: #f8fafc;
             --text-secondary: #94a3b8;
             --text-muted: #64748b;
             --accent-color: #38bdf8;
             --focus-color: #38bdf8;
-            --status-ok: #22c55e;
-            --status-warn: #f59e0b;
-            --status-danger: #ef4444;
-            --scrollbar-track: #0f172a;
+            --scrollbar-track: #0b1120;
             --scrollbar-thumb: #475569;
             accent-color: var(--accent-color);
             scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
@@ -40,58 +37,53 @@
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             line-height: 1.5;
             text-align: start;
-            padding-block: 0.875rem;
-            padding-inline: 1rem;
+            padding-block: 1rem;
+            padding-inline: 1.25rem;
             min-block-size: 100dvh;
+            max-inline-size: 105rem;
+            margin-inline: auto;
         }
 
-        /* Top Console Header */
+        /* Header Bar */
         .console-header {
             display: flex;
             flex-wrap: wrap;
             justify-content: space-between;
             align-items: safe center;
-            gap: 0.75rem;
+            gap: 1rem;
             background-color: var(--bg-surface);
             border: 1px solid var(--border-subtle);
-            border-radius: 0.625rem;
-            padding-block: 0.75rem;
-            padding-inline: 1.125rem;
-            margin-block-end: 0.875rem;
-        }
-
-        .brand-block {
-            display: flex;
-            flex-direction: column;
-            gap: 0.125rem;
+            border-radius: 0.75rem;
+            padding-block: 0.85rem;
+            padding-inline: 1.25rem;
+            margin-block-end: 1rem;
         }
 
         .brand-title {
-            font-size: clamp(1rem, 0.85rem + 0.5vw, 1.25rem);
+            font-size: clamp(1.05rem, 0.9rem + 0.45vw, 1.3rem);
             font-weight: 700;
-            color: var(--text-primary);
             letter-spacing: 0.01em;
         }
 
         .brand-subtitle {
-            font-size: 0.78rem;
+            font-size: 0.8rem;
             color: var(--text-secondary);
         }
 
         .status-badges {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.5rem;
+            gap: 0.55rem;
             align-items: safe center;
         }
 
         .badge {
             display: inline-flex;
             align-items: safe center;
-            padding-block: 0.25rem;
-            padding-inline: 0.75rem;
+            padding-block: 0.3rem;
+            padding-inline: 0.85rem;
             border-radius: 999px;
-            font-size: 0.75rem;
+            font-size: 0.76rem;
             font-weight: 700;
             letter-spacing: 0.03em;
             background-color: rgba(34, 197, 94, 0.16);
@@ -106,7 +98,7 @@
         }
 
         .badge.danger {
-            background-color: rgba(239, 68, 68, 0.24);
+            background-color: rgba(239, 68, 68, 0.25);
             color: #fca5a5;
             border-color: #ef4444;
         }
@@ -117,22 +109,22 @@
             border-color: rgba(56, 189, 248, 0.45);
         }
 
-        /* Dual Visualization Viewport (Camera + 360 LiDAR) */
+        /* Clean Dual Visualization Row (Only Camera & LiDAR) */
         .vision-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr));
-            gap: 0.875rem;
-            margin-block-end: 0.875rem;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr));
+            gap: 1rem;
+            margin-block-end: 1rem;
         }
 
         .stream-panel {
             background-color: var(--bg-surface);
             border: 1px solid var(--border-subtle);
-            border-radius: 0.625rem;
-            padding: 0.75rem;
+            border-radius: 0.75rem;
+            padding: 0.9rem;
             display: flex;
             flex-direction: column;
-            gap: 0.625rem;
+            gap: 0.65rem;
         }
 
         .panel-header {
@@ -141,12 +133,10 @@
             justify-content: space-between;
             align-items: safe center;
             gap: 0.5rem;
-            border-block-end: 1px solid var(--border-subtle);
-            padding-block-end: 0.5rem;
         }
 
         .panel-title {
-            font-size: 0.82rem;
+            font-size: 0.85rem;
             font-weight: 700;
             color: var(--accent-color);
             letter-spacing: 0.04em;
@@ -154,7 +144,7 @@
         }
 
         .panel-meta {
-            font-size: 0.75rem;
+            font-size: 0.78rem;
             color: var(--text-secondary);
             font-variant-numeric: tabular-nums;
         }
@@ -170,60 +160,57 @@
             border: 1px solid #1e293b;
         }
 
-        .stream-toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.4rem;
-        }
-
-        /* Bottom 3-Column Control & Configuration Architecture */
-        .control-grid {
+        /* Spacious 2-Column Bottom Control Deck */
+        .deck-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(min(100%, 23rem), 1fr));
-            gap: 0.875rem;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr));
+            gap: 1rem;
+            align-items: start;
         }
 
         .card {
             background-color: var(--bg-surface);
             border: 1px solid var(--border-subtle);
-            border-radius: 0.625rem;
-            padding: 0.95rem;
+            border-radius: 0.75rem;
+            padding: 1.15rem;
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
+            gap: 1rem;
+        }
+
+        .section-block {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
         }
 
         .section-label {
-            font-size: 0.75rem;
+            font-size: 0.76rem;
             font-weight: 700;
             color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.04em;
         }
 
-        /* Buttons & Interactive Controls */
+        /* Buttons */
         button {
             font: inherit;
-            font-size: 0.8rem;
+            font-size: 0.84rem;
             font-weight: 600;
             color: var(--text-primary);
             background-color: var(--bg-elevated);
             border: 1px solid var(--border-strong);
-            border-radius: 0.45rem;
-            padding-block: 0.48rem;
-            padding-inline: 0.75rem;
-            min-block-size: 2.35rem;
+            border-radius: 0.5rem;
+            padding-block: 0.55rem;
+            padding-inline: 0.9rem;
+            min-block-size: 2.55rem;
             cursor: pointer;
             transition: background-color 0.12s ease, border-color 0.12s ease;
         }
 
         button:hover {
-            background-color: #263558;
-            border-color: #526b9c;
-        }
-
-        button:active {
-            background-color: #1e293b;
+            background-color: #293856;
+            border-color: #4f6a9e;
         }
 
         button:focus-visible,
@@ -233,29 +220,27 @@
             outline-offset: 2px;
         }
 
-        .btn-compact {
-            font-size: 0.75rem;
-            min-block-size: 2rem;
-            padding-block: 0.3rem;
-            padding-inline: 0.6rem;
-            flex: 1 1 auto;
+        /* 4 Operating Mode Buttons */
+        .mode-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
         }
 
-        /* Drive Mode Selector Buttons */
-        .mode-selector {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.45rem;
+        @media (max-width: 640px) {
+            .mode-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
 
         .mode-btn {
             font-weight: 700;
-            letter-spacing: 0.02em;
+            font-size: 0.8rem;
         }
 
         .mode-btn.active-stop {
             background-color: #334155;
-            border-color: #94a3b8;
+            border-color: #cbd5e1;
             color: #ffffff;
         }
 
@@ -282,10 +267,10 @@
             background-color: #dc2626;
             border: 2px solid #f87171;
             color: #ffffff;
-            font-size: 0.88rem;
+            font-size: 0.9rem;
             font-weight: 800;
             letter-spacing: 0.04em;
-            min-block-size: 2.65rem;
+            min-block-size: 2.8rem;
         }
 
         .estop-btn:hover {
@@ -298,127 +283,270 @@
             color: #fecaca;
         }
 
-        /* Telemetry Readout Grid */
-        .telemetry-box {
+        /* Live Status Banner */
+        .status-banner {
             background-color: var(--bg-input);
             border: 1px solid var(--border-subtle);
-            border-radius: 0.5rem;
-            padding: 0.65rem 0.75rem;
+            border-radius: 0.6rem;
+            padding: 0.8rem 1rem;
             display: flex;
-            flex-direction: column;
-            gap: 0.4rem;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: safe center;
+            gap: 0.75rem;
         }
 
-        .status-headline {
-            font-size: 0.92rem;
+        .status-main {
+            font-size: 0.95rem;
             font-weight: 700;
             color: var(--accent-color);
-            overflow-wrap: break-word;
         }
 
-        .kv-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.4rem 0.75rem;
-            font-size: 0.78rem;
+        .status-metrics {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
             font-variant-numeric: tabular-nums;
         }
 
-        .kv-item {
-            display: flex;
-            justify-content: space-between;
-            gap: 0.35rem;
-            color: var(--text-secondary);
+        .status-metrics strong {
+            color: var(--text-primary);
         }
 
-        .kv-item strong {
-            color: var(--text-primary);
+        /* DAC Y & DAC X Hardware Channel Toggle Buttons */
+        .dac-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.65rem;
+        }
+
+        @media (max-width: 560px) {
+            .dac-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .dac-toggle-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.2rem;
+            padding: 0.75rem 0.9rem;
+            border-radius: 0.6rem;
+            text-align: start;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-strong);
+        }
+
+        .dac-toggle-btn.dac-on {
+            background-color: rgba(21, 128, 61, 0.18);
+            border-color: #22c55e;
+        }
+
+        .dac-toggle-btn.dac-off {
+            background-color: rgba(30, 41, 59, 0.55);
+            border-color: #475569;
+        }
+
+        .dac-btn-header {
+            display: flex;
+            justify-content: space-between;
+            inline-size: 100%;
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        .dac-state-pill {
+            font-size: 0.72rem;
+            padding-inline: 0.45rem;
+            border-radius: 999px;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .dac-on .dac-state-pill {
+            background-color: rgba(34, 197, 94, 0.25);
+            color: #4ade80;
+        }
+
+        .dac-off .dac-state-pill {
+            background-color: rgba(148, 163, 184, 0.2);
+            color: #cbd5e1;
+        }
+
+        .dac-btn-sub {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Stop Distance Tuner Box */
+        .tuner-box {
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            border-radius: 0.6rem;
+            padding: 0.8rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
+        }
+
+        .tuner-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: safe center;
+            gap: 0.5rem;
+            font-size: 0.84rem;
             font-weight: 600;
         }
 
-        /* Manual D-Pad & Pre-Autonomous Test Suite */
-        .dpad-grid {
+        .tuner-controls {
+            display: flex;
+            align-items: safe center;
+            gap: 0.65rem;
+        }
+
+        .tuner-controls input[type="range"] {
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .tuner-controls input[type="number"] {
+            font: inherit;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            background-color: var(--bg-elevated);
+            border: 1px solid var(--border-strong);
+            border-radius: 0.45rem;
+            padding-block: 0.35rem;
+            padding-inline: 0.5rem;
+            inline-size: 5.5rem;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Accessible Tablist (WAI-ARIA pattern from modern-web-guidance) */
+        .tablist {
+            display: flex;
+            overflow-x: auto;
+            border-block-end: 1px solid var(--border-subtle);
+            gap: 0.25rem;
+        }
+
+        [role="tab"] {
+            position: relative;
+            flex: none;
+            background: transparent;
+            border: 0;
+            border-radius: 0;
+            color: var(--text-secondary);
+            padding-block: 0.6rem;
+            padding-inline: 0.95rem;
+            font-size: 0.82rem;
+            font-weight: 700;
+            min-block-size: 2.5rem;
+        }
+
+        [role="tab"]:hover {
+            background-color: rgba(255, 255, 255, 0.04);
+            color: var(--text-primary);
+        }
+
+        [role="tab"][aria-selected="true"] {
+            color: var(--accent-color);
+        }
+
+        [role="tab"][aria-selected="true"]::after {
+            content: "";
+            position: absolute;
+            inset: auto 0 0;
+            border-block-end: 3px solid var(--accent-color);
+        }
+
+        .tabpanel-body {
+            padding-block-start: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+        }
+
+        /* Simplified Manual Cross Pad (5 clean buttons) */
+        .manual-cross-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 0.4rem;
+            gap: 0.55rem;
+            max-inline-size: 26rem;
+            margin-inline: auto;
+            inline-size: 100%;
         }
 
-        .dpad-btn {
-            font-size: 0.76rem;
-            font-weight: 700;
-            min-block-size: 2.3rem;
-        }
-
-        .dpad-btn.active-dir {
-            background-color: #0284c7;
-            border-color: #7dd3fc;
-            color: #ffffff;
+        .cross-spacer {
+            visibility: hidden;
         }
 
         .dpad-stop {
             background-color: #3f1d28;
             border-color: #f43f5e;
             color: #fda4af;
+            font-weight: 800;
         }
 
+        /* Simplified Motor Test Grid */
         .test-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 0.4rem;
+            gap: 0.55rem;
         }
 
-        .test-btn {
-            font-size: 0.75rem;
-            background-color: #1e293b;
-            border-color: #475569;
-        }
-
-        .test-btn.sweep {
+        .test-btn-sweep {
             grid-column: span 3;
             background-color: #1e3a5f;
             border-color: #38bdf8;
             color: #e0f2fe;
+            font-weight: 700;
         }
 
-        /* Forms, Fieldsets, Pin Inputs & Toggle Switches */
+        /* Forms & Inputs */
         form {
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
+            gap: 0.85rem;
         }
 
         fieldset {
             border: 1px solid var(--border-subtle);
-            border-radius: 0.5rem;
-            padding: 0.65rem 0.75rem;
+            border-radius: 0.6rem;
+            padding: 0.85rem 1rem;
             display: flex;
             flex-direction: column;
-            gap: 0.55rem;
+            gap: 0.7rem;
         }
 
         legend {
-            font-size: 0.74rem;
+            font-size: 0.75rem;
             font-weight: 700;
             color: var(--accent-color);
             text-transform: uppercase;
             letter-spacing: 0.04em;
-            padding-inline: 0.35rem;
+            padding-inline: 0.4rem;
         }
 
         .pin-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 0.55rem 0.75rem;
+            gap: 0.65rem 0.85rem;
         }
 
         .field {
             display: flex;
             flex-direction: column;
-            gap: 0.2rem;
+            gap: 0.25rem;
         }
 
         .field label {
-            font-size: 0.75rem;
+            font-size: 0.78rem;
             font-weight: 600;
             color: var(--text-secondary);
         }
@@ -426,30 +554,16 @@
         .field input[type="text"],
         .field input[type="number"] {
             font: inherit;
-            font-size: 0.85rem;
+            font-size: 0.88rem;
             color: var(--text-primary);
             background-color: var(--bg-input);
             border: 1px solid var(--border-strong);
-            border-radius: 0.4rem;
-            padding-block: 0.38rem;
-            padding-inline: 0.55rem;
-            min-block-size: 2.15rem;
+            border-radius: 0.45rem;
+            padding-block: 0.45rem;
+            padding-inline: 0.65rem;
+            min-block-size: 2.35rem;
             inline-size: 100%;
             font-variant-numeric: tabular-nums;
-        }
-
-        .slider-row {
-            display: flex;
-            align-items: safe center;
-            justify-content: space-between;
-            gap: 0.75rem;
-            font-size: 0.78rem;
-            color: var(--text-secondary);
-        }
-
-        .slider-row input[type="range"] {
-            flex: 1;
-            cursor: pointer;
         }
 
         .switch-row {
@@ -457,9 +571,8 @@
             align-items: safe center;
             justify-content: space-between;
             gap: 0.75rem;
-            padding-block: 0.25rem;
-            font-size: 0.8rem;
-            color: var(--text-primary);
+            padding-block: 0.3rem;
+            font-size: 0.84rem;
         }
 
         .switch-row label {
@@ -469,8 +582,8 @@
 
         input[type="checkbox"][switch] {
             accent-color: var(--accent-color);
-            inline-size: 1.15rem;
-            block-size: 1.15rem;
+            inline-size: 1.2rem;
+            block-size: 1.2rem;
             margin: 0;
             cursor: pointer;
         }
@@ -487,42 +600,53 @@
         }
 
         .feedback-note {
-            font-size: 0.75rem;
+            font-size: 0.78rem;
             color: #4ade80;
-            min-block-size: 1.1rem;
+            min-block-size: 1.15rem;
         }
 
-        /* GPS Reserved Manual Expansion Box */
+        .kv-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.55rem 1rem;
+            font-size: 0.82rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .kv-item {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .kv-item strong {
+            color: var(--text-primary);
+        }
+
         .gps-placeholder-box {
-            background-color: rgba(15, 23, 42, 0.85);
+            background-color: var(--bg-input);
             border: 1px dashed var(--border-strong);
-            border-radius: 0.5rem;
-            padding: 0.65rem 0.75rem;
+            border-radius: 0.6rem;
+            padding: 0.85rem 1rem;
             display: flex;
             flex-direction: column;
-            gap: 0.35rem;
+            gap: 0.4rem;
         }
 
-        .gps-placeholder-title {
-            font-size: 0.74rem;
-            font-weight: 700;
-            color: #7dd3fc;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-        }
-
-        .gps-placeholder-text {
-            font-size: 0.76rem;
-            color: var(--text-secondary);
-            overflow-wrap: break-word;
+        .tuning-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.55rem;
         }
     </style>
 </head>
 <body>
+    <!-- TOP HEADER -->
     <header class="console-header">
-        <div class="brand-block">
-            <h1 class="brand-title">AUTONOMOUS SMART WHEELCHAIR CONTROL CONSOLE</h1>
-            <p class="brand-subtitle">HP Mini PC (ROS 2 Jazzy + YOLOv8 + 360 LiDAR Fusion) to Arduino Dual-DAC Motor &amp; GPS Bridge</p>
+        <div>
+            <h1 class="brand-title">AUTONOMOUS SMART WHEELCHAIR CONSOLE</h1>
+            <p class="brand-subtitle">AI Vision + 360 RPLiDAR Fusion + Arduino Dual-DAC Motor Controller</p>
         </div>
         <div class="status-badges" role="status" aria-live="polite">
             <span class="badge danger" id="estop-badge" style="display: none;">E-STOP ENGAGED</span>
@@ -533,213 +657,302 @@
         </div>
     </header>
 
-    <!-- PRIMARY VISUALIZATION VIEWPORT: ONLY CAMERA & 360 LIDAR -->
-    <section class="vision-grid" aria-label="Sensor Visualization Streams">
+    <!-- ROW 1: CLEAN DUAL STREAM VISUALIZATION (ONLY CAMERA & 360 LIDAR) -->
+    <section class="vision-grid" aria-label="Live Sensor Visualizations">
         <article class="stream-panel">
             <div class="panel-header">
-                <h2 class="panel-title">Front AI Camera &amp; LiDAR Projection</h2>
+                <h2 class="panel-title">Front AI Camera &amp; LiDAR Fusion</h2>
                 <span class="panel-meta" id="cam-meta">Video: 0 FPS | AI: 0 Hz | Objects: 0</span>
             </div>
-            <img class="stream-frame" src="/video_feed" alt="Live Front AI Camera and Sensor Fusion Stream">
-            <div class="stream-toolbar">
-                <button type="button" class="btn-compact" data-ctrl="toggle_lidar_cam">Laser Points [L]</button>
-                <button type="button" class="btn-compact" data-ctrl="toggle_unknown">Floor Hazard Detector [U]</button>
-                <button type="button" class="btn-compact" data-ctrl="toggle_edges">Edge Mask [E]</button>
-                <button type="button" class="btn-compact" data-ctrl="line_up">Danger Line Up [+]</button>
-                <button type="button" class="btn-compact" data-ctrl="line_down">Danger Line Down [-]</button>
-            </div>
+            <img class="stream-frame" src="/video_feed" alt="Live Front AI Camera Stream">
         </article>
 
         <article class="stream-panel">
             <div class="panel-header">
-                <h2 class="panel-title">360-Degree RPLiDAR A1M8 Radar &amp; VFH Path Planner</h2>
-                <span class="panel-meta" id="lidar-meta">Scan Rate: 0 Hz | Best Path: 0 deg (3.50m)</span>
+                <h2 class="panel-title">360-Degree RPLiDAR A1M8 Radar</h2>
+                <span class="panel-meta" id="lidar-meta">Scan Rate: 0 Hz | Closest: CLEAR</span>
             </div>
-            <img class="stream-frame" src="/lidar_feed" alt="Live 360-Degree RPLiDAR A1M8 Top-Down Radar Stream">
-            <div class="stream-toolbar">
-                <button type="button" class="btn-compact" data-ctrl="lidar_zoom">Zoom Range [Z]</button>
-                <button type="button" class="btn-compact" data-ctrl="toggle_clusters">Obstacle Clusters [C]</button>
-                <button type="button" class="btn-compact" data-ctrl="lidar_align_left">Align -5 deg</button>
-                <button type="button" class="btn-compact" data-ctrl="lidar_rotate">Rotate +90 deg [R]</button>
-                <button type="button" class="btn-compact" data-ctrl="lidar_align_right">Align +5 deg</button>
-                <button type="button" class="btn-compact" data-ctrl="lidar_danger_up">Safety Ring +</button>
-                <button type="button" class="btn-compact" data-ctrl="lidar_danger_down">Safety Ring -</button>
-            </div>
+            <img class="stream-frame" src="/lidar_feed" alt="Live 360 LiDAR Radar Stream">
         </article>
     </section>
 
-    <!-- CONTROL, ARDUINO HARDWARE & GPS PANELS -->
-    <main class="control-grid">
-        <!-- PANEL 1: DRIVE MODE, MANUAL JOG & PRE-AUTONOMOUS MOTOR TEST -->
-        <section class="card" aria-labelledby="drive-panel-heading">
+    <!-- ROW 2: SPACIOUS 2-COLUMN CONTROL & CONFIGURATION DECK -->
+    <main class="deck-grid">
+        <!-- LEFT COLUMN: DRIVE MODES, DAC Y/X BUTTONS, STOP DISTANCE & MANUAL/TEST PAD -->
+        <section class="card" aria-labelledby="drive-card-title">
             <div class="panel-header">
-                <h2 class="panel-title" id="drive-panel-heading">1. Wheelchair Drive &amp; Motor Test Suite</h2>
+                <h2 class="panel-title" id="drive-card-title">Drive Control, DAC Channels &amp; Safety Distance</h2>
                 <span class="panel-meta" id="relay-meta">Relay: DISENGAGED</span>
             </div>
 
-            <div class="section-label">Operating Mode Selection</div>
-            <div class="mode-selector">
-                <button type="button" class="mode-btn active-stop" id="btn-mode-stop" data-mode="STOP">STANDBY / STOP</button>
-                <button type="button" class="mode-btn" id="btn-mode-manual" data-mode="MANUAL">MANUAL DRIVE</button>
-                <button type="button" class="mode-btn" id="btn-mode-test" data-mode="TEST">MOTOR TEST MODE</button>
-                <button type="button" class="mode-btn" id="btn-mode-auto" data-mode="AUTO">AUTONOMOUS DRIVE</button>
+            <!-- 1. Mode Selection + E-Stop -->
+            <div class="section-block">
+                <div class="mode-bar">
+                    <button type="button" class="mode-btn active-stop" id="btn-mode-stop" data-mode="STOP">STOP / STANDBY</button>
+                    <button type="button" class="mode-btn" id="btn-mode-manual" data-mode="MANUAL">MANUAL DRIVE</button>
+                    <button type="button" class="mode-btn" id="btn-mode-test" data-mode="TEST">MOTOR TEST</button>
+                    <button type="button" class="mode-btn" id="btn-mode-auto" data-mode="AUTO">AUTONOMOUS</button>
+                </div>
+                <button type="button" class="estop-btn" id="estop-btn">
+                    EMERGENCY STOP (E-STOP) [SPACE]
+                </button>
             </div>
 
-            <button type="button" class="estop-btn" id="estop-btn">
-                EMERGENCY STOP (E-STOP) [SPACE]
-            </button>
-
-            <div class="telemetry-box">
-                <div class="status-headline" id="active-status-text">STANDBY / STOPPED (NEUTRAL 2.50V)</div>
-                <div class="kv-grid">
-                    <div class="kv-item"><span>Command Speed:</span><strong id="tel-speed">0%</strong></div>
-                    <div class="kv-item"><span>Command Steer:</span><strong id="tel-steer">0 deg</strong></div>
-                    <div class="kv-item"><span>DAC Y (0x60 Speed):</span><strong id="tel-dac-y">2.50V (2048)</strong></div>
-                    <div class="kv-item"><span>DAC X (0x61 Steer):</span><strong id="tel-dac-x">2.50V (2048)</strong></div>
-                    <div class="kv-item"><span>AI Nav Decision:</span><strong id="tel-ai-cmd">STANDBY</strong></div>
-                    <div class="kv-item"><span>Closest Obstacle:</span><strong id="tel-closest">CLEAR</strong></div>
+            <!-- 2. Live Status Summary -->
+            <div class="status-banner">
+                <div class="status-main" id="active-status-text">STANDBY / STOPPED (NEUTRAL 2.50V)</div>
+                <div class="status-metrics">
+                    <span>Speed: <strong id="tel-speed">0%</strong></span>
+                    <span>Steer: <strong id="tel-steer">0 deg</strong></span>
+                    <span>Obstacle: <strong id="tel-closest">CLEAR</strong></span>
                 </div>
             </div>
 
-            <div class="section-label">Manual Movement Controls (Click or Hold WASD / Arrows)</div>
-            <div class="slider-row">
-                <label for="manual-speed-slider">Manual Drive Speed:</label>
-                <input type="range" id="manual-speed-slider" min="15" max="100" step="5" value="45">
-                <strong id="manual-speed-val">45%</strong>
-            </div>
-            <div class="dpad-grid">
-                <button type="button" class="dpad-btn" data-manual="FWD_LEFT">FWD LEFT</button>
-                <button type="button" class="dpad-btn" data-manual="FWD">FORWARD [W]</button>
-                <button type="button" class="dpad-btn" data-manual="FWD_RIGHT">FWD RIGHT</button>
-                <button type="button" class="dpad-btn" data-manual="LEFT">TURN LEFT [A]</button>
-                <button type="button" class="dpad-btn dpad-stop" data-manual="STOP">STOP [S]</button>
-                <button type="button" class="dpad-btn" data-manual="RIGHT">TURN RIGHT [D]</button>
-                <button type="button" class="dpad-btn" data-manual="STOP">NEUTRAL</button>
-                <button type="button" class="dpad-btn" data-manual="BACK">REVERSE [X]</button>
-                <button type="button" class="dpad-btn" data-manual="STOP">BRAKE</button>
+            <!-- 3. Dedicated DAC Y and DAC X Buttons -->
+            <div class="section-block">
+                <div class="section-label">Active DAC Hardware Channels (Click Button to Enable / Disable)</div>
+                <div class="dac-grid">
+                    <button type="button" class="dac-toggle-btn dac-on" id="btn-dac-y">
+                        <div class="dac-btn-header">
+                            <span>DAC Y (Fwd / Back)</span>
+                            <span class="dac-state-pill" id="pill-dac-y">ENABLED</span>
+                        </div>
+                        <div class="dac-btn-sub" id="sub-dac-y">I2C 0x60 | Output: 2.50V (2048)</div>
+                    </button>
+
+                    <button type="button" class="dac-toggle-btn dac-off" id="btn-dac-x">
+                        <div class="dac-btn-header">
+                            <span>DAC X (Left / Right)</span>
+                            <span class="dac-state-pill" id="pill-dac-x">DISABLED</span>
+                        </div>
+                        <div class="dac-btn-sub" id="sub-dac-x">1-DAC Mode: Auto Stops on Obstacle</div>
+                    </button>
+                </div>
             </div>
 
-            <div class="section-label">Pre-Autonomous Motor Test Suite (1.5s Safe 30% Pulses)</div>
-            <div class="test-grid">
-                <button type="button" class="test-btn" data-test="FWD">Test Forward</button>
-                <button type="button" class="test-btn" data-test="BACK">Test Reverse</button>
-                <button type="button" class="test-btn" data-test="NEUTRAL">Verify 2.50V</button>
-                <button type="button" class="test-btn" data-test="LEFT">Test Left</button>
-                <button type="button" class="test-btn" data-test="RIGHT">Test Right</button>
-                <button type="button" class="test-btn" data-test="NONE">Stop Test</button>
-                <button type="button" class="test-btn sweep" data-test="SWEEP">Run Full 4-Direction Motor Verification Sweep</button>
+            <!-- 4. Manual Autonomous Stop Distance Tuner -->
+            <div class="tuner-box">
+                <div class="tuner-header">
+                    <label for="stop-dist-slider">Autonomous Stop Distance Before Obstacle:</label>
+                    <strong id="stop-dist-label" style="color: var(--accent-color);">0.85 m</strong>
+                </div>
+                <div class="tuner-controls">
+                    <input type="range" id="stop-dist-slider" min="0.25" max="3.00" step="0.05" value="0.85" aria-valuetext="0.85 meters">
+                    <input type="number" id="stop-dist-input" min="0.25" max="3.50" step="0.05" value="0.85" aria-label="Stop distance in meters">
+                </div>
+            </div>
+
+            <!-- 5. Clean Sub-Tabs for Manual Pad vs Motor Test Suite -->
+            <div>
+                <div class="tablist" role="tablist" aria-label="Manual and Motor Test Controls">
+                    <button type="button" role="tab" id="tab-manual-pad" aria-selected="true">Manual Drive Pad</button>
+                    <button type="button" role="tab" id="tab-test-suite" aria-selected="false">Pre-Autonomous Motor Test</button>
+                </div>
+
+                <!-- Tab Panel A: Manual Drive Pad -->
+                <div role="tabpanel" id="panel-manual-pad" aria-labelledby="tab-manual-pad">
+                    <div class="tabpanel-body">
+                        <div class="tuner-controls">
+                            <label for="manual-speed-slider" style="font-size: 0.82rem; color: var(--text-secondary);">Manual Speed:</label>
+                            <input type="range" id="manual-speed-slider" min="15" max="100" step="5" value="45">
+                            <strong id="manual-speed-val" style="min-inline-size: 3rem; text-align: end;">45%</strong>
+                        </div>
+                        <div class="manual-cross-grid">
+                            <span class="cross-spacer"></span>
+                            <button type="button" data-manual="FWD">FORWARD [W]</button>
+                            <span class="cross-spacer"></span>
+                            <button type="button" data-manual="LEFT">LEFT [A]</button>
+                            <button type="button" class="dpad-stop" data-manual="STOP">STOP [S]</button>
+                            <button type="button" data-manual="RIGHT">RIGHT [D]</button>
+                            <span class="cross-spacer"></span>
+                            <button type="button" data-manual="BACK">REVERSE [X]</button>
+                            <span class="cross-spacer"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Panel B: Pre-Autonomous Motor Test Suite -->
+                <div role="tabpanel" id="panel-test-suite" aria-labelledby="tab-test-suite" hidden="until-found">
+                    <div class="tabpanel-body">
+                        <p style="font-size: 0.8rem; color: var(--text-secondary);">
+                            Sends a safe 1.5-second 30% voltage pulse to verify motor direction and automatically returns to 2.50V neutral.
+                        </p>
+                        <div class="test-grid">
+                            <button type="button" data-test="FWD">Test Forward</button>
+                            <button type="button" data-test="BACK">Test Reverse</button>
+                            <button type="button" data-test="NEUTRAL">Verify 2.50V</button>
+                            <button type="button" data-test="LEFT">Test Left</button>
+                            <button type="button" data-test="RIGHT">Test Right</button>
+                            <button type="button" data-test="NONE">Stop Test</button>
+                            <button type="button" class="test-btn-sweep" data-test="SWEEP">Run 4-Direction Verification Sweep</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
-        <!-- PANEL 2: ARDUINO PIN CUSTOMIZATION & MOTOR DIRECTION REVERSAL -->
-        <section class="card" aria-labelledby="hw-panel-heading">
-            <div class="panel-header">
-                <h2 class="panel-title" id="hw-panel-heading">2. Arduino Pins, DAC &amp; Motor Polarity</h2>
-                <span class="panel-meta" id="serial-port-meta">Port: AUTO (115200)</span>
+        <!-- RIGHT COLUMN: CLEAN TABBED HARDWARE, GPS & SENSOR SETTINGS -->
+        <section class="card" aria-label="Hardware, GPS and Sensor Configuration">
+            <div class="tablist" role="tablist" aria-label="System Configuration Tabs">
+                <button type="button" role="tab" id="tab-hw-cfg" aria-selected="true">Arduino Pins &amp; Polarity</button>
+                <button type="button" role="tab" id="tab-gps-cfg" aria-selected="false">GPS Module</button>
+                <button type="button" role="tab" id="tab-sensor-cfg" aria-selected="false">Camera &amp; LiDAR Options</button>
             </div>
 
-            <form id="arduino-config-form" aria-labelledby="hw-panel-heading" action="/api/arduino_config" method="POST">
-                <fieldset>
-                    <legend>Serial Link &amp; Arduino Pin Mapping</legend>
-                    <div class="pin-grid">
-                        <div class="field" style="grid-column: span 2;">
-                            <label for="cfg-port">Mini PC to Arduino Serial Port (AUTO or /dev/ttyACM0)</label>
-                            <input type="text" id="cfg-port" name="arduino_port" value="AUTO" autocorrect="off" autocapitalize="none" spellcheck="false" required>
-                        </div>
-                        <div class="field">
-                            <label for="cfg-pin-speed">Speed / Y-Axis Pin</label>
-                            <input type="number" id="cfg-pin-speed" name="pin_speed" min="0" max="53" value="9" required>
-                        </div>
-                        <div class="field">
-                            <label for="cfg-pin-steer">Steer / X-Axis Pin</label>
-                            <input type="number" id="cfg-pin-steer" name="pin_steer" min="0" max="53" value="10" required>
-                        </div>
-                        <div class="field">
-                            <label for="cfg-pin-relay">Takeover Relay Pin</label>
-                            <input type="number" id="cfg-pin-relay" name="pin_relay" min="0" max="53" value="7" required>
-                        </div>
-                        <div class="field">
-                            <label for="cfg-pin-estop">Hardware E-Stop Pin</label>
-                            <input type="number" id="cfg-pin-estop" name="pin_estop" min="0" max="53" value="2" required>
-                        </div>
-                        <div class="field">
-                            <label for="cfg-pin-gps-rx">GPS RX Pin (Ard RX)</label>
-                            <input type="number" id="cfg-pin-gps-rx" name="pin_gps_rx" min="0" max="53" value="4" required>
-                        </div>
-                        <div class="field">
-                            <label for="cfg-pin-gps-tx">GPS TX Pin (Ard TX)</label>
-                            <input type="number" id="cfg-pin-gps-tx" name="pin_gps_tx" min="0" max="53" value="3" required>
-                        </div>
-                    </div>
-                </fieldset>
+            <!-- TAB 1: ARDUINO PINS & MOTOR POLARITY -->
+            <div role="tabpanel" id="panel-hw-cfg" aria-labelledby="tab-hw-cfg">
+                <div class="tabpanel-body">
+                    <form id="arduino-config-form" action="/api/arduino_config" method="POST">
+                        <fieldset>
+                            <legend>Serial Port &amp; Arduino Pin Numbers</legend>
+                            <div class="pin-grid">
+                                <div class="field" style="grid-column: span 2;">
+                                    <label for="cfg-port">Arduino Serial Port (AUTO or /dev/ttyACM0)</label>
+                                    <input type="text" id="cfg-port" name="arduino_port" value="AUTO" autocorrect="off" autocapitalize="none" spellcheck="false" required>
+                                </div>
+                                <div class="field">
+                                    <label for="cfg-pin-speed">Speed / Y-Axis Pin</label>
+                                    <input type="number" id="cfg-pin-speed" name="pin_speed" min="0" max="53" value="9" required>
+                                </div>
+                                <div class="field">
+                                    <label for="cfg-pin-steer">Steer / X-Axis Pin</label>
+                                    <input type="number" id="cfg-pin-steer" name="pin_steer" min="0" max="53" value="10" required>
+                                </div>
+                                <div class="field">
+                                    <label for="cfg-pin-relay">Takeover Relay Pin</label>
+                                    <input type="number" id="cfg-pin-relay" name="pin_relay" min="0" max="53" value="7" required>
+                                </div>
+                                <div class="field">
+                                    <label for="cfg-pin-estop">Hardware E-Stop Pin</label>
+                                    <input type="number" id="cfg-pin-estop" name="pin_estop" min="0" max="53" value="2" required>
+                                </div>
+                                <div class="field">
+                                    <label for="cfg-pin-gps-rx">GPS RX Pin (Ard RX)</label>
+                                    <input type="number" id="cfg-pin-gps-rx" name="pin_gps_rx" min="0" max="53" value="4" required>
+                                </div>
+                                <div class="field">
+                                    <label for="cfg-pin-gps-tx">GPS TX Pin (Ard TX)</label>
+                                    <input type="number" id="cfg-pin-gps-tx" name="pin_gps_tx" min="0" max="53" value="3" required>
+                                </div>
+                            </div>
+                        </fieldset>
 
-                <fieldset>
-                    <legend>Motor Polarity &amp; Joystick Axis Direction</legend>
-                    <div class="switch-row">
-                        <label for="cfg-rev-drive">Reverse Drive Motor (Forward / Backward)</label>
-                        <input type="checkbox" id="cfg-rev-drive" name="reverse_drive" switch>
-                    </div>
-                    <div class="switch-row">
-                        <label for="cfg-rev-steer">Reverse Steer Motor (Left / Right)</label>
-                        <input type="checkbox" id="cfg-rev-steer" name="reverse_steer" switch>
-                    </div>
-                </fieldset>
+                        <fieldset>
+                            <legend>Motor Direction Reversal</legend>
+                            <div class="switch-row">
+                                <label for="cfg-rev-drive">Reverse Drive Motor (Forward / Backward)</label>
+                                <input type="checkbox" id="cfg-rev-drive" name="reverse_drive" switch>
+                            </div>
+                            <div class="switch-row">
+                                <label for="cfg-rev-steer">Reverse Steer Motor (Left / Right)</label>
+                                <input type="checkbox" id="cfg-rev-steer" name="reverse_steer" switch>
+                            </div>
+                        </fieldset>
 
-                <button type="submit" class="btn-primary" id="apply-hw-btn">Apply Pins &amp; Polarity to Arduino</button>
-                <div class="feedback-note" id="hw-feedback" role="status" aria-live="polite"></div>
-            </form>
-        </section>
-
-        <!-- PANEL 3: GPS MODULE (ON/OFF CONTROL & RESERVED MANUAL INTEGRATION SPACE) -->
-        <section class="card" aria-labelledby="gps-panel-heading">
-            <div class="panel-header">
-                <h2 class="panel-title" id="gps-panel-heading">3. GPS Positioning Module (GP-01-Kit)</h2>
-                <span class="panel-meta" id="gps-pins-meta">UART: RX D4 / TX D3 @ 9600</span>
-            </div>
-
-            <fieldset>
-                <legend>GPS Module Power &amp; UART Control</legend>
-                <div class="switch-row">
-                    <label for="gps-toggle-input">Enable Arduino GPS Module Stream</label>
-                    <input type="checkbox" id="gps-toggle-input" name="gps_enabled" switch>
-                </div>
-            </fieldset>
-
-            <!-- ==================================================================
-                 [MANUAL GPS DATA DISPLAY & FUTURE EXPANSION CONTAINER]
-                 Add custom waypoint fields, target coordinates, or map links here
-                 when integrating full outdoor GPS navigation later.
-                 ================================================================== -->
-            <div class="telemetry-box" id="gps-manual-data-container">
-                <div class="status-headline" id="gps-status-headline">GPS MODULE DISABLED</div>
-                <div class="kv-grid">
-                    <div class="kv-item"><span>Latitude:</span><strong id="gps-lat">-- (Manual / Pending Fix)</strong></div>
-                    <div class="kv-item"><span>Longitude:</span><strong id="gps-lon">-- (Manual / Pending Fix)</strong></div>
-                    <div class="kv-item"><span>Satellites Tracked:</span><strong id="gps-sats">0</strong></div>
-                    <div class="kv-item"><span>3D Fix State:</span><strong id="gps-fix">NO FIX</strong></div>
+                        <button type="submit" class="btn-primary">Apply Pins &amp; Polarity to Arduino</button>
+                        <div class="feedback-note" id="hw-feedback" role="status" aria-live="polite"></div>
+                    </form>
                 </div>
             </div>
 
-            <div class="gps-placeholder-box">
-                <div class="gps-placeholder-title">Reserved Manual GPS Integration Slot</div>
-                <p class="gps-placeholder-text" id="gps-custom-slot">
-                    Ready for manual coordinate / waypoint logic. Edit GpsModule.cpp (Arduino), arduino_bridge.py (Mini PC), and updateGpsPanel() in index.html.
-                </p>
+            <!-- TAB 2: GPS POSITIONING MODULE -->
+            <div role="tabpanel" id="panel-gps-cfg" aria-labelledby="tab-gps-cfg" hidden="until-found">
+                <div class="tabpanel-body">
+                    <fieldset>
+                        <legend>GPS Module Power Control (GP-01-Kit)</legend>
+                        <div class="switch-row">
+                            <label for="gps-toggle-input">Enable Arduino GPS Module Stream (9600 Baud)</label>
+                            <input type="checkbox" id="gps-toggle-input" name="gps_enabled" switch>
+                        </div>
+                    </fieldset>
+
+                    <!-- [MANUAL GPS DATA DISPLAY & FUTURE EXPANSION CONTAINER] -->
+                    <fieldset id="gps-manual-data-container">
+                        <legend id="gps-status-headline">GPS Telemetry Status: DISABLED</legend>
+                        <div class="kv-grid">
+                            <div class="kv-item"><span>Latitude:</span><strong id="gps-lat">-- (Manual / Pending Fix)</strong></div>
+                            <div class="kv-item"><span>Longitude:</span><strong id="gps-lon">-- (Manual / Pending Fix)</strong></div>
+                            <div class="kv-item"><span>Satellites Tracked:</span><strong id="gps-sats">0</strong></div>
+                            <div class="kv-item"><span>3D Fix State:</span><strong id="gps-fix">NO FIX</strong></div>
+                        </div>
+                    </fieldset>
+
+                    <div class="gps-placeholder-box">
+                        <div class="section-label" style="color: var(--accent-color);">Reserved Manual GPS Integration Slot</div>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary);" id="gps-custom-slot">
+                            Ready for manual coordinate / waypoint logic in GpsModule.cpp, arduino_bridge.py, and updateGpsPanel().
+                        </p>
+                    </div>
+                </div>
             </div>
 
-            <div class="section-label">Active Hardware Architecture Summary</div>
-            <div class="telemetry-box">
-                <div class="kv-grid">
-                    <div class="kv-item"><span>DAC Speed I2C:</span><strong>0x60 (MCP4725)</strong></div>
-                    <div class="kv-item"><span>DAC Steer I2C:</span><strong>0x61 (MCP4725)</strong></div>
-                    <div class="kv-item"><span>Neutral Reference:</span><strong>2.50 V (2048)</strong></div>
-                    <div class="kv-item"><span>Output Swing:</span><strong>0.50 V to 4.50 V</strong></div>
+            <!-- TAB 3: CAMERA & 360 LIDAR DISPLAY OPTIONS -->
+            <div role="tabpanel" id="panel-sensor-cfg" aria-labelledby="tab-sensor-cfg" hidden="until-found">
+                <div class="tabpanel-body">
+                    <fieldset>
+                        <legend>Front AI Camera Overlays</legend>
+                        <div class="tuning-grid">
+                            <button type="button" data-ctrl="toggle_lidar_cam">Toggle Laser Points [L]</button>
+                            <button type="button" data-ctrl="toggle_unknown">Floor Hazard Detector [U]</button>
+                            <button type="button" data-ctrl="toggle_edges">Toggle Edge Mask [E]</button>
+                            <button type="button" data-ctrl="line_up">Camera Danger Line Up [+]</button>
+                            <button type="button" data-ctrl="line_down" style="grid-column: span 2;">Camera Danger Line Down [-]</button>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>360 RPLiDAR Radar View &amp; Alignment</legend>
+                        <div class="tuning-grid">
+                            <button type="button" data-ctrl="lidar_zoom">Cycle Radar Zoom [Z]</button>
+                            <button type="button" data-ctrl="toggle_clusters">Obstacle Clusters [C]</button>
+                            <button type="button" data-ctrl="lidar_align_left">Align Radar -5 deg</button>
+                            <button type="button" data-ctrl="lidar_align_right">Align Radar +5 deg</button>
+                            <button type="button" data-ctrl="lidar_rotate" style="grid-column: span 2;">Rotate Radar Front +90 deg [R]</button>
+                        </div>
+                    </fieldset>
                 </div>
             </div>
         </section>
     </main>
 
     <script>
+        // Tab Switcher Utility
+        function setupTabs(tabIds, panelIds) {
+            const tabs = tabIds.map((id) => document.getElementById(id));
+            const panels = panelIds.map((id) => document.getElementById(id));
+
+            function activateTab(index) {
+                tabs.forEach((tab, i) => {
+                    const selected = i === index;
+                    tab.setAttribute('aria-selected', selected ? 'true' : 'false');
+                    if (selected) {
+                        panels[i].removeAttribute('hidden');
+                    } else {
+                        panels[i].setAttribute('hidden', 'until-found');
+                    }
+                });
+            }
+
+            tabs.forEach((tab, i) => {
+                tab.addEventListener('click', () => activateTab(i));
+            });
+            panels.forEach((panel, i) => {
+                panel.addEventListener('beforematch', () => activateTab(i));
+            });
+
+            return activateTab;
+        }
+
+        const activateDriveSubTab = setupTabs(
+            ['tab-manual-pad', 'tab-test-suite'],
+            ['panel-manual-pad', 'panel-test-suite']
+        );
+        setupTabs(
+            ['tab-hw-cfg', 'tab-gps-cfg', 'tab-sensor-cfg'],
+            ['panel-hw-cfg', 'panel-gps-cfg', 'panel-sensor-cfg']
+        );
+
+        // API Helpers
         async function postControl(action) {
             try {
                 await fetch('/control/' + action, { method: 'POST' });
@@ -747,11 +960,40 @@
         }
 
         async function setDriveMode(mode) {
+            if (mode === 'MANUAL') activateDriveSubTab(0);
+            if (mode === 'TEST') activateDriveSubTab(1);
             try {
                 await fetch('/api/mode', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ mode })
+                });
+            } catch (err) {}
+        }
+
+        async function toggleDacChannel(channel) {
+            try {
+                await fetch('/api/dac_toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ channel })
+                });
+            } catch (err) {}
+        }
+
+        async function updateStopDistance(meters) {
+            const num = parseFloat(meters);
+            if (Number.isNaN(num)) return;
+            const clamped = Math.max(0.25, Math.min(3.50, num));
+            document.getElementById('stop-dist-label').textContent = clamped.toFixed(2) + ' m';
+            document.getElementById('stop-dist-slider').value = String(Math.min(3.00, clamped));
+            document.getElementById('stop-dist-slider').setAttribute('aria-valuetext', clamped.toFixed(2) + ' meters');
+            document.getElementById('stop-dist-input').value = clamped.toFixed(2);
+            try {
+                await fetch('/api/stop_distance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stop_distance_m: clamped })
                 });
             } catch (err) {}
         }
@@ -778,36 +1020,45 @@
             } catch (err) {}
         }
 
-        // Bind Vision / LiDAR toolbar buttons
+        // Event Bindings
         document.querySelectorAll('[data-ctrl]').forEach((btn) => {
             btn.addEventListener('click', () => postControl(btn.getAttribute('data-ctrl')));
         });
 
-        // Bind Mode selector buttons
         document.querySelectorAll('[data-mode]').forEach((btn) => {
             btn.addEventListener('click', () => setDriveMode(btn.getAttribute('data-mode')));
         });
 
-        // Bind Emergency Stop button
         document.getElementById('estop-btn').addEventListener('click', () => postControl('toggle_estop'));
+        document.getElementById('btn-dac-y').addEventListener('click', () => toggleDacChannel('Y'));
+        document.getElementById('btn-dac-x').addEventListener('click', () => toggleDacChannel('X'));
 
-        // Bind Manual speed slider
+        // Stop Distance Slider & Numeric Input
+        const stopSliderEl = document.getElementById('stop-dist-slider');
+        const stopInputEl = document.getElementById('stop-dist-input');
+        stopSliderEl.addEventListener('input', () => {
+            const v = parseFloat(stopSliderEl.value).toFixed(2);
+            document.getElementById('stop-dist-label').textContent = v + ' m';
+            stopInputEl.value = v;
+        });
+        stopSliderEl.addEventListener('change', () => updateStopDistance(stopSliderEl.value));
+        stopInputEl.addEventListener('change', () => updateStopDistance(stopInputEl.value));
+
+        // Manual Drive Slider & Pad
         const speedSliderEl = document.getElementById('manual-speed-slider');
         speedSliderEl.addEventListener('input', () => {
             document.getElementById('manual-speed-val').textContent = speedSliderEl.value + '%';
         });
-
-        // Bind Manual D-Pad buttons
         document.querySelectorAll('[data-manual]').forEach((btn) => {
             btn.addEventListener('click', () => sendManualCommand(btn.getAttribute('data-manual')));
         });
 
-        // Bind Motor Test Suite buttons
+        // Motor Test Buttons
         document.querySelectorAll('[data-test]').forEach((btn) => {
             btn.addEventListener('click', () => triggerMotorTest(btn.getAttribute('data-test')));
         });
 
-        // Bind Arduino Hardware Config Form
+        // Arduino Hardware Config Form
         const hwForm = document.getElementById('arduino-config-form');
         const hwFeedback = document.getElementById('hw-feedback');
 
@@ -843,7 +1094,7 @@
         document.getElementById('cfg-rev-drive').addEventListener('change', () => submitHardwareConfig());
         document.getElementById('cfg-rev-steer').addEventListener('change', () => submitHardwareConfig());
 
-        // Bind GPS On/Off Switch
+        // GPS Toggle
         const gpsToggleEl = document.getElementById('gps-toggle-input');
         gpsToggleEl.addEventListener('change', async () => {
             try {
@@ -855,7 +1106,7 @@
             } catch (err) {}
         });
 
-        // Keyboard Shortcuts (Ignored when typing inside input fields)
+        // Keyboard Shortcuts
         window.addEventListener('keydown', (e) => {
             if (e.isComposing) return;
             const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
@@ -875,7 +1126,6 @@
             if (e.key === 'z' || e.key === 'Z') postControl('lidar_zoom');
             if (e.key === 'c' || e.key === 'C') postControl('toggle_clusters');
 
-            // Manual WASD / Arrow Drive Shortcuts
             if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') sendManualCommand('FWD');
             if (e.key === 's' || e.key === 'S') sendManualCommand('STOP');
             if (e.key === 'x' || e.key === 'X' || e.key === 'ArrowDown') sendManualCommand('BACK');
@@ -883,7 +1133,7 @@
             if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') sendManualCommand('RIGHT');
         });
 
-        // Load initial settings into form controls once on startup
+        // Load Initial Settings
         (async function loadInitialSettings() {
             try {
                 const res = await fetch('/api/settings');
@@ -898,6 +1148,12 @@
                 document.getElementById('cfg-rev-drive').checked = Boolean(s.reverse_drive);
                 document.getElementById('cfg-rev-steer').checked = Boolean(s.reverse_steer);
                 document.getElementById('gps-toggle-input').checked = Boolean(s.gps_enabled);
+                if (s.lidar_danger_m !== undefined) {
+                    const d = Number(s.lidar_danger_m).toFixed(2);
+                    document.getElementById('stop-dist-label').textContent = d + ' m';
+                    stopSliderEl.value = d;
+                    stopInputEl.value = d;
+                }
                 if (s.manual_speed_pct) {
                     speedSliderEl.value = s.manual_speed_pct;
                     document.getElementById('manual-speed-val').textContent = s.manual_speed_pct + '%';
@@ -905,7 +1161,6 @@
             } catch (err) {}
         })();
 
-        // Dedicated GPS Panel Updater (Easy to extend manually later)
         function updateGpsPanel(gps) {
             if (!gps) return;
             const gpsBadge = document.getElementById('gps-badge');
@@ -914,18 +1169,15 @@
             if (!gps.enabled) {
                 gpsBadge.className = 'badge warn';
                 gpsBadge.textContent = 'GPS: OFF';
-                headline.textContent = 'GPS MODULE DISABLED';
-                headline.style.color = '#94a3b8';
+                headline.textContent = 'GPS Telemetry Status: DISABLED';
             } else if (gps.has_fix) {
                 gpsBadge.className = 'badge';
                 gpsBadge.textContent = 'GPS: 3D FIX (' + gps.satellites + ' SATS)';
-                headline.textContent = 'GPS ACTIVE — ' + (gps.status || 'FIX LOCKED');
-                headline.style.color = '#4ade80';
+                headline.textContent = 'GPS Telemetry Status: ' + (gps.status || 'FIX LOCKED');
             } else {
                 gpsBadge.className = 'badge info';
                 gpsBadge.textContent = 'GPS: ON (' + gps.satellites + ' SATS)';
-                headline.textContent = 'GPS ACTIVE — ' + (gps.status || 'SEARCHING SATELLITES');
-                headline.style.color = '#38bdf8';
+                headline.textContent = 'GPS Telemetry Status: ' + (gps.status || 'SEARCHING SATELLITES');
             }
 
             document.getElementById('gps-lat').textContent =
@@ -938,29 +1190,28 @@
                     : '-- (Manual / Pending Fix)';
             document.getElementById('gps-sats').textContent = String(gps.satellites || 0);
             document.getElementById('gps-fix').textContent = gps.has_fix ? 'LOCKED' : 'NO FIX';
-            document.getElementById('gps-pins-meta').textContent =
-                'UART: RX D' + (gps.rx_pin ?? 4) + ' / TX D' + (gps.tx_pin ?? 3) + ' @ 9600';
 
             if (gps.custom_slot) {
                 document.getElementById('gps-custom-slot').textContent = gps.custom_slot;
             }
         }
 
-        // 5 Hz Telemetry Polling Loop
+        // 5 Hz Telemetry Loop
         setInterval(async () => {
             try {
                 const res = await fetch('/telemetry');
                 const data = await res.json();
 
-                // 1. Stream headers
                 document.getElementById('cam-meta').textContent =
                     'Video: ' + data.fps + ' FPS | AI: ' + data.ai_fps + ' Hz | Objects: ' + data.objects_count;
-                const bestHdg = data.lidar_best_heading_deg || 0;
-                const bestClr = (data.lidar_best_clearance_m || 0).toFixed(2);
-                document.getElementById('lidar-meta').textContent =
-                    'Scan Rate: ' + (data.lidar_hz || 0) + ' Hz | Best Path: ' + (bestHdg > 0 ? '+' : '') + bestHdg + ' deg (' + bestClr + 'm)';
 
-                // 2. Top status badges
+                const closestM = data.lidar_closest_dist_m
+                    ? data.lidar_closest_dist_m.toFixed(2) + ' m'
+                    : (data.closest_dist_m ? data.closest_dist_m.toFixed(2) + ' m' : 'CLEAR');
+
+                document.getElementById('lidar-meta').textContent =
+                    'Scan Rate: ' + (data.lidar_hz || 0) + ' Hz | Stop Dist: ' + Number(data.stop_distance_m || 0.85).toFixed(2) + ' m | Closest: ' + closestM;
+
                 const lBadge = document.getElementById('lidar-badge');
                 if (data.lidar_connected) {
                     lBadge.className = 'badge';
@@ -975,13 +1226,11 @@
                 mBadge.textContent = 'MODE: ' + mode;
                 mBadge.className = mode === 'AUTO' ? 'badge' : (mode === 'STOP' ? 'badge warn' : 'badge info');
 
-                // Highlight active mode button
                 document.getElementById('btn-mode-stop').className = 'mode-btn' + (mode === 'STOP' ? ' active-stop' : '');
                 document.getElementById('btn-mode-manual').className = 'mode-btn' + (mode === 'MANUAL' ? ' active-manual' : '');
                 document.getElementById('btn-mode-test').className = 'mode-btn' + (mode === 'TEST' ? ' active-test' : '');
                 document.getElementById('btn-mode-auto').className = 'mode-btn' + (mode === 'AUTO' ? ' active-auto' : '');
 
-                // 3. Emergency Stop State
                 const estopBadge = document.getElementById('estop-badge');
                 const estopBtn = document.getElementById('estop-btn');
                 if (data.estop_active) {
@@ -994,7 +1243,6 @@
                     estopBtn.textContent = 'EMERGENCY STOP (E-STOP) [SPACE]';
                 }
 
-                // 4. Drive & Arduino DAC Telemetry
                 const statusEl = document.getElementById('active-status-text');
                 statusEl.textContent = data.active_status || data.command || 'STANDBY';
                 if (data.estop_active || data.speed_pct === 0) {
@@ -1007,11 +1255,7 @@
                 const str = data.steer_deg || 0;
                 document.getElementById('tel-speed').textContent = (spd > 0 ? '+' : '') + spd + '%';
                 document.getElementById('tel-steer').textContent = (str > 0 ? '+' : '') + str + ' deg';
-                document.getElementById('tel-ai-cmd').textContent = data.auto_command || data.command || '--';
-                document.getElementById('tel-closest').textContent =
-                    data.lidar_closest_dist_m
-                        ? data.lidar_closest_dist_m.toFixed(2) + ' m'
-                        : (data.closest_dist_m ? data.closest_dist_m.toFixed(2) + ' m' : 'CLEAR');
+                document.getElementById('tel-closest').textContent = closestM;
 
                 if (data.arduino) {
                     const ard = data.arduino;
@@ -1023,16 +1267,28 @@
                         ardBadge.className = 'badge warn';
                         ardBadge.textContent = 'ARDUINO: SIMULATED PREVIEW';
                     }
-                    document.getElementById('serial-port-meta').textContent = 'Port: ' + ard.port;
                     document.getElementById('relay-meta').textContent =
                         'Relay: ' + (ard.relay_engaged ? 'ENGAGED (DAC ACTIVE)' : 'DISENGAGED (SAFE)');
-                    document.getElementById('tel-dac-y').textContent =
-                        Number(ard.voltage_speed).toFixed(2) + 'V (' + ard.dac_speed + ')';
-                    document.getElementById('tel-dac-x').textContent =
-                        Number(ard.voltage_steer).toFixed(2) + 'V (' + ard.dac_steer + ')';
+
+                    // DAC Y Button State
+                    const yOn = Boolean(ard.dac_y_enabled);
+                    const btnY = document.getElementById('btn-dac-y');
+                    btnY.className = 'dac-toggle-btn ' + (yOn ? 'dac-on' : 'dac-off');
+                    document.getElementById('pill-dac-y').textContent = yOn ? 'ENABLED' : 'DISABLED';
+                    document.getElementById('sub-dac-y').textContent = yOn
+                        ? 'I2C 0x60 | Output: ' + Number(ard.voltage_speed).toFixed(2) + 'V (' + ard.dac_speed + ')'
+                        : 'Locked to 2.50V (2048) Neutral';
+
+                    // DAC X Button State
+                    const xOn = Boolean(ard.dac_x_enabled);
+                    const btnX = document.getElementById('btn-dac-x');
+                    btnX.className = 'dac-toggle-btn ' + (xOn ? 'dac-on' : 'dac-off');
+                    document.getElementById('pill-dac-x').textContent = xOn ? 'ENABLED' : 'DISABLED';
+                    document.getElementById('sub-dac-x').textContent = xOn
+                        ? 'I2C 0x61 | Output: ' + Number(ard.voltage_steer).toFixed(2) + 'V (' + ard.dac_steer + ')'
+                        : '1-DAC Mode: Auto Stops on Obstacle';
                 }
 
-                // 5. GPS Module Telemetry
                 updateGpsPanel(data.gps);
             } catch (err) {}
         }, 200);

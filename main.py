@@ -219,6 +219,8 @@ def main():
         "pin_gps_tx": config.DEFAULT_PIN_GPS_TX,
         "reverse_drive": False,
         "reverse_steer": False,
+        "dac_y_enabled": True,
+        "dac_x_enabled": False,
         "gps_enabled": False,
     }
     telemetry = {
@@ -250,6 +252,8 @@ def main():
             "connected": False,
             "port": "DISCONNECTED (SIMULATED PREVIEW)",
             "baud": config.ARDUINO_BAUD_RATE,
+            "dac_y_enabled": True,
+            "dac_x_enabled": False,
             "dac_speed": 2048,
             "dac_steer": 2048,
             "voltage_speed": 2.50,

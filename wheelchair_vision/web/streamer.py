@@ -44,6 +44,7 @@ class FrameStreamer:
                 show_lidar_on_cam = self.control_settings.get("show_lidar_on_cam", config.SHOW_LIDAR_ON_CAM)
                 lidar_danger_m = self.control_settings.get("lidar_danger_m", config.LIDAR_DEFAULT_DANGER_M)
                 estop_active = self.control_settings.get("estop_active", False)
+                dac_x_enabled = self.control_settings.get("dac_x_enabled", False)
                 detections = list(self.shared_state.detections)
                 cam_blocked_l = self.shared_state.blocked_l
                 cam_blocked_c = self.shared_state.blocked_c
@@ -164,6 +165,7 @@ class FrameStreamer:
                 lidar_best_clearance_m=lidar_best_clr,
                 danger_dist_m=lidar_danger_m,
                 estop_active=estop_active,
+                dac_x_enabled=dac_x_enabled,
             )
 
             curr_time = time.time()
