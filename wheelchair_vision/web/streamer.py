@@ -187,8 +187,12 @@ class FrameStreamer:
                 self.telemetry["fps"] = round(video_fps, 1)
                 self.telemetry["ai_fps"] = ai_fps_val
                 self.telemetry["command"] = cmd_text
-                self.telemetry["steer_deg"] = steer_deg
-                self.telemetry["speed_pct"] = speed_pct
+                self.telemetry["auto_command"] = cmd_text
+                self.telemetry["auto_steer_deg"] = steer_deg
+                self.telemetry["auto_speed_pct"] = speed_pct
+                if self.control_settings.get("drive_mode", "STOP") == "AUTO":
+                    self.telemetry["steer_deg"] = steer_deg
+                    self.telemetry["speed_pct"] = speed_pct
                 self.telemetry["closest_dist_m"] = closest_dist if closest_dist < 9.0 else None
                 self.telemetry["left_zone"] = src_l
                 self.telemetry["center_zone"] = src_c

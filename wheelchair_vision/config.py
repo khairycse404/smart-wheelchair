@@ -59,6 +59,19 @@ class VisionConfig:
     CAMERA_HFOV_DEG: float = 68.0           # Camera horizontal field of view (deg) for LiDAR fusion
     SHOW_LIDAR_ON_CAM: bool = True          # Project frontal LiDAR laser points onto camera video
 
+    # Subsystem 4: Arduino Serial Bridge, DAC & GPS Module defaults
+    ARDUINO_SERIAL_PORT: str = "AUTO"       # Auto-detects /dev/ttyACM* or /dev/ttyUSB1+
+    ARDUINO_BAUD_RATE: int = 115200
+    DEFAULT_PIN_SPEED: int = 9              # Y-Axis Throttle PWM / Aux output pin
+    DEFAULT_PIN_STEER: int = 10             # X-Axis Steer PWM / Aux output pin
+    DEFAULT_PIN_RELAY: int = 7              # Joystick Spoof Takeover Relay pin
+    DEFAULT_PIN_ESTOP: int = 2              # Hardware E-Stop input pin
+    DEFAULT_PIN_GPS_RX: int = 4             # Arduino RX (connects to GPS TX)
+    DEFAULT_PIN_GPS_TX: int = 3             # Arduino TX (connects to GPS RX)
+    DAC_I2C_SPEED_ADDR: str = "0x60"        # MCP4725 #1 (Throttle / Y-Axis)
+    DAC_I2C_STEER_ADDR: str = "0x61"        # MCP4725 #2 (Steer / X-Axis)
+    DEFAULT_MANUAL_SPEED_PCT: int = 45      # Default manual control speed (%)
+
 
 # Default global instance
 config = VisionConfig()

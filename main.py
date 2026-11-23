@@ -50,6 +50,7 @@ from wheelchair_vision.navigation.smoother import CommandSmoother
 from wheelchair_vision.lidar.ros2_scanner import ROS2LidarScanner
 from wheelchair_vision.lidar.radar_renderer import LidarRadarStreamer
 from wheelchair_vision.fusion.sensor_fusion import SensorFusionEngine
+from wheelchair_vision.serial_bridge.arduino_bridge import ArduinoSerialBridge
 from wheelchair_vision.web.streamer import FrameStreamer
 from wheelchair_vision.web.app import create_app
 
@@ -205,11 +206,30 @@ def main():
         "lidar_angle_offset_deg": config.LIDAR_ANGLE_OFFSET_DEG,
         "show_lidar_clusters": True,
         "estop_active": False,
+        "drive_mode": "STOP",
+        "manual_action": "STOP",
+        "manual_speed_pct": config.DEFAULT_MANUAL_SPEED_PCT,
+        "arduino_port": config.ARDUINO_SERIAL_PORT,
+        "arduino_baud": config.ARDUINO_BAUD_RATE,
+        "pin_speed": config.DEFAULT_PIN_SPEED,
+        "pin_steer": config.DEFAULT_PIN_STEER,
+        "pin_relay": config.DEFAULT_PIN_RELAY,
+        "pin_estop": config.DEFAULT_PIN_ESTOP,
+        "pin_gps_rx": config.DEFAULT_PIN_GPS_RX,
+        "pin_gps_tx": config.DEFAULT_PIN_GPS_TX,
+        "reverse_drive": False,
+        "reverse_steer": False,
+        "gps_enabled": False,
     }
     telemetry = {
         "fps": 0.0,
         "ai_fps": 0.0,
         "command": "INITIALIZING...",
+        "auto_command": "INITIALIZING...",
+        "auto_steer_deg": 0,
+        "auto_speed_pct": 0,
+        "drive_mode": "STOP",
+        "active_status": "STANDBY / STOPPED (NEUTRAL 2.50V)",
         "steer_deg": 0,
         "speed_pct": 0,
         "closest_dist_m": None,
@@ -226,6 +246,36 @@ def main():
         "lidar_obstacles": [],
         "lidar_best_heading_deg": 0.0,
         "lidar_best_clearance_m": 3.5,
+        "arduino": {
+            "connected": False,
+            "port": "DISCONNECTED (SIMULATED PREVIEW)",
+            "baud": config.ARDUINO_BAUD_RATE,
+            "dac_speed": 2048,
+            "dac_steer": 2048,
+            "voltage_speed": 2.50,
+            "voltage_steer": 2.50,
+            "relay_engaged": False,
+            "test_active": "NONE",
+            "pin_speed": config.DEFAULT_PIN_SPEED,
+            "pin_steer": config.DEFAULT_PIN_STEER,
+            "pin_relay": config.DEFAULT_PIN_RELAY,
+            "pin_estop": config.DEFAULT_PIN_ESTOP,
+            "pin_gps_rx": config.DEFAULT_PIN_GPS_RX,
+            "pin_gps_tx": config.DEFAULT_PIN_GPS_TX,
+            "reverse_drive": False,
+            "reverse_steer": False,
+        },
+        "gps": {
+            "enabled": False,
+            "status": "DISABLED",
+            "has_fix": False,
+            "satellites": 0,
+            "latitude": None,
+            "longitude": None,
+            "rx_pin": config.DEFAULT_PIN_GPS_RX,
+            "tx_pin": config.DEFAULT_PIN_GPS_TX,
+            "custom_slot": "Ready for manual coordinate / waypoint logic",
+        },
     }
 
     # Start Subsystem 2: ROS 2 360° RPLiDAR A1M8 Scanner & Bird's-Eye Radar
@@ -234,6 +284,9 @@ def main():
 
     # Start Subsystem 3: Multi-Sensor Fusion Engine (Camera + LiDAR)
     fusion_engine = SensorFusionEngine()
+
+    # Start Subsystem 4: Arduino Serial Bridge (DAC Motor Controller + GPS Module)
+    arduino_bridge = ArduinoSerialBridge(shared_state, control_settings, telemetry)
 
     # Start Subsystem 1: Background AI Vision + Fusion worker thread
     ai_thread = threading.Thread(
@@ -247,7 +300,9 @@ def main():
     streamer = FrameStreamer(
         camera, lidar_scanner, fusion_engine, shared_state, control_settings, telemetry
     )
-    app = create_app(streamer, lidar_streamer, shared_state, control_settings, telemetry)
+    app = create_app(
+        streamer, lidar_streamer, arduino_bridge, shared_state, control_settings, telemetry
+    )
     app.run(host=args.host, port=args.port, debug=False, threaded=True)
 
 
